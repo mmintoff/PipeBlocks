@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="9.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\MM.PipeBlocks.Extensions\MM.PipeBlocks.Extensions.csproj" />
+    <ProjectReference Include="..\MM.PipeBlocks\MM.PipeBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

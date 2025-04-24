@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <Version>1.0.0</Version>
+    <Authors>Mark Mintoff</Authors>
+    <Description>Additional functionality</Description>
+    <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>
+    <PackageId>MM.PipeBlocks.Extensions</PackageId>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/mmintoff/PipeBlocks</RepositoryUrl>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\MM.PipeBlocks\MM.PipeBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

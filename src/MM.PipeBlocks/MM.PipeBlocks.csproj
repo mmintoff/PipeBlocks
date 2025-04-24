@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <LangVersion>12</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    
+    <Version>1.0.0</Version>
+    <Authors>Mark Mintoff</Authors>
+    <Description>A composable pipeline library for defining process flows with sequential execution, branching, try/catch handling, and mixed sync/async support. Each process step is encapsulated as a "block," enabling modular and unit-testable workflows. The pipeline follows a two-rail system, breaking early on failure, with results wrapped in an Either monad for clear success/failure state management.</Description>
+    <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>
+    <PackageId>MM.PipeBlocks</PackageId>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RepositoryUrl>https://github.com/mmintoff/PipeBlocks</RepositoryUrl>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
+    <NoWarn>1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />
+    <PackageReference Include="Nito.AsyncEx.Context" Version="5.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
