@@ -117,8 +117,8 @@ var serviceProvider = serviceCollection.BuildServiceProvider();
 var builder = serviceProvider.GetRequiredService<BlockBuilder<MyContextModel, MyValueModel>>();
 var pipe = builder.CreatePipe("Word Counter")
     .Then(builder.ReturnIf(
-        condition: (c, v) => string.IsNullOrWhiteSpace(c.RequestUrl),
-        action: (c, v) =>
+        condition: c => string.IsNullOrWhiteSpace(c.RequestUrl),
+        todo: (c, v) =>
         {
             c.Value = new MyFailureState
             {
