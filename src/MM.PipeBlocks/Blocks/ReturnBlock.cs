@@ -97,7 +97,7 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
 /// </summary>
 /// <typeparam name="C">The type of context implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value held in the context.</typeparam>
-public sealed class BreakBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
+public sealed class NoopBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     where C : IContext<V>
 {
     /// <summary>

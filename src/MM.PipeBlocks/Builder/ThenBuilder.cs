@@ -116,25 +116,25 @@ public partial class BlockBuilder<C, V>
     /// Executes <paramref name="doThis"/> if the context-based condition is true, otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen(Func<C, bool> condition, IBlock<C, V> doThis)
-        => IfThen(condition, doThis, new BreakBlock<C, V>());
+        => IfThen(condition, doThis, Noop());
 
     /// <summary>
     /// Executes <paramref name="doThis"/> if the context and value-based condition is true, otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen(Func<C, V, bool> condition, IBlock<C, V> doThis)
-        => IfThen(condition, doThis, new BreakBlock<C, V>());
+        => IfThen(condition, doThis, Noop());
 
     /// <summary>
     /// Asynchronously evaluates a context-based condition and executes <paramref name="doThis"/> if true, otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen(Func<C, ValueTask<bool>> condition, IBlock<C, V> doThis)
-        => IfThen(condition, doThis, new BreakBlock<C, V>());
+        => IfThen(condition, doThis, Noop());
 
     /// <summary>
     /// Asynchronously evaluates a context and value-based condition and executes <paramref name="doThis"/> if true, otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen(Func<C, V, ValueTask<bool>> condition, IBlock<C, V> doThis)
-        => IfThen(condition, doThis, new BreakBlock<C, V>());
+        => IfThen(condition, doThis, Noop());
 
     #endregion
 
@@ -145,28 +145,28 @@ public partial class BlockBuilder<C, V>
     /// </summary>
     public BranchBlock<C, V> IfThen<X>(Func<C, bool> condition)
         where X : IBlock<C, V>
-        => IfThen(condition, ResolveInstance<X>(), new BreakBlock<C, V>());
+        => IfThen(condition, ResolveInstance<X>(), Noop());
 
     /// <summary>
     /// Conditionally executes a generic block if the context and value-based condition is true; otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen<X>(Func<C, V, bool> condition)
         where X : IBlock<C, V>
-        => IfThen(condition, ResolveInstance<X>(), new BreakBlock<C, V>());
+        => IfThen(condition, ResolveInstance<X>(), Noop());
 
     /// <summary>
     /// Asynchronously evaluates a context-based condition and executes a generic block if true; otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen<X>(Func<C, ValueTask<bool>> condition)
         where X : IBlock<C, V>
-        => IfThen(condition, ResolveInstance<X>(), new BreakBlock<C, V>());
+        => IfThen(condition, ResolveInstance<X>(), Noop());
 
     /// <summary>
     /// Asynchronously evaluates a context and value-based condition and executes a generic block if true; otherwise breaks.
     /// </summary>
     public BranchBlock<C, V> IfThen<X>(Func<C, V, ValueTask<bool>> condition)
         where X : IBlock<C, V>
-        => IfThen(condition, ResolveInstance<X>(), new BreakBlock<C, V>());
+        => IfThen(condition, ResolveInstance<X>(), Noop());
 
     #endregion
 }

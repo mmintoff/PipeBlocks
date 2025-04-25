@@ -2,222 +2,345 @@
 using MM.PipeBlocks.Blocks;
 
 namespace MM.PipeBlocks;
+/// <summary>
+/// A fluent builder for composing pipeline blocks that can control flow,
+/// return early, or do nothing (no-op).
+/// </summary>
+/// <typeparam name="C">The context type, implementing <see cref="IContext{V}"/>.</typeparam>
+/// <typeparam name="V">The value type associated with the context.</typeparam>
 public partial class BlockBuilder<C, V>
     where C : IContext<V>
 {
     /// <summary>
-    /// Create a Break block
+    /// Creates a no-operation block that simply returns the input context unchanged.
     /// </summary>
-    /// <returns>BreakBlock</returns>
-    public BreakBlock<C, V> Break() => new();
+    /// <returns>
+    /// A new instance of <see cref="NoopBlock{C, V}"/> that performs no action.
+    /// </returns>
+    public NoopBlock<C, V> Noop() => new();
 
-    #region Synchronous
     /// <summary>
-    /// Default synchronous Return method that returns the same context.
+    /// Creates a return block that returns the input context unchanged.
     /// </summary>
-    /// <returns>ReturnBlock</returns>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that returns the same context without modification.
+    /// </returns>
     public ReturnBlock<C, V> Return() => new(CreateLogger<ReturnBlock<C, V>>(), c => c);
 
     /// <summary>
-    /// Synchronous Return method that accepts an Action and executes it on the context.
+    /// Creates a return block that executes the given action on the context and then returns it.
     /// </summary>
-    /// <param name="action">The action to perform on the context.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Action<C> action)
+    /// <param name="todo">An action to be performed on the context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that runs the specified action and returns the modified context.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Action<C> todo)
         => Return(context =>
         {
-            action(context);
+            todo(context);
             return context;
         });
 
     /// <summary>
-    /// Synchronous Return method that accepts a Func and executes it on the context.
+    /// Creates a return block that executes a transformation function on the context and returns the result.
     /// </summary>
-    /// <param name="func">The function to apply to the context.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, C> func)
-        => new(CreateLogger<ReturnBlock<C, V>>(), func);
+    /// <param name="todo">A function that transforms the context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that returns the result of the transformation.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Func<C, C> todo)
+        => new(CreateLogger<ReturnBlock<C, V>>(), todo);
 
     /// <summary>
-    /// Conditional synchronous Return method that executes if the predicate is true.
+    /// Creates a return block that executes a transformation function using both the context and its value,
+    /// and returns the resulting context.
     /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <returns>BranchBlock</returns>
+    /// <param name="todo">A function that takes the context and its value to produce a new context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that returns the result of the transformation.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Func<C, V, C> todo)
+        => new(CreateLogger<ReturnBlock<C, V>>(), todo);
+
+    /// <summary>
+    /// Creates a return block that performs an asynchronous action on the context and then returns it.
+    /// </summary>
+    /// <param name="todo">An asynchronous function to be executed on the context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that awaits the specified action and then returns the context.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Func<C, ValueTask> todo)
+        => Return(async context =>
+        {
+            await todo(context);
+            return context;
+        });
+
+    /// <summary>
+    /// Creates a return block that performs an asynchronous transformation on the context and returns the result.
+    /// </summary>
+    /// <param name="todo">An asynchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that executes the asynchronous transformation.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Func<C, ValueTask<C>> todo)
+        => new(CreateLogger<ReturnBlock<C, V>>(), todo);
+
+    /// <summary>
+    /// Creates a return block that performs an asynchronous transformation using the context and its value,
+    /// and returns the result.
+    /// </summary>
+    /// <param name="todo">An asynchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="ReturnBlock{C, V}"/> that executes the asynchronous transformation.
+    /// </returns>
+    public ReturnBlock<C, V> Return(Func<C, V, ValueTask<C>> todo)
+        => new(CreateLogger<ReturnBlock<C, V>>(), todo);
+
+    /// <summary>
+    /// Creates a conditional return block that returns the context unchanged if the given condition is met.
+    /// </summary>
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies a no-op if the condition is true.
+    /// </returns>
     public BranchBlock<C, V> ReturnIf(Func<C, bool> condition)
         => ReturnIf(condition, context => context);
 
     /// <summary>
-    /// Conditional synchronous Return method that accepts an Action and executes it if the predicate is true.
+    /// Creates a conditional return block that executes the given action and returns the context if the condition is met.
     /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <param name="action">The action to perform on the context if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Action<C> action)
-        => ReturnIf(condition, context =>
-        {
-            action(context);
-            return context;
-        });
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An action to be executed on the context if the condition is true.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the action and returns the context if the condition is true,
+    /// or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Action<C> todo)
+        => IfThen(condition, Return(todo), Noop());
 
     /// <summary>
-    /// Conditional synchronous Return method that accepts a Func and executes it if the predicate is true.
+    /// Creates a conditional return block that executes the given action using both the context and its value,
+    /// then returns the context if the condition is met.
     /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <param name="func">The function to apply to the context if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, C> func)
-        => IfThen(condition, Return(func), Break());
-
-    /// <summary>
-    /// Synchronous Return method that accepts an Action with two parameters (context and value) and executes it.
-    /// </summary>
-    /// <param name="action">The action to perform on the context and value.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Action<C, V> action)
-        => Return((context, value) =>
-        {
-            action(context, value);
-            return context;
-        });
-
-    /// <summary>
-    /// Synchronous Return method that accepts a Func with two parameters (context and value) and executes it.
-    /// </summary>
-    /// <param name="func">The function to apply to the context and value.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, V, C> func)
-        => new(CreateLogger<ReturnBlock<C, V>>(), func);
-
-    /// <summary>
-    /// Conditional synchronous Return method with two parameters that executes if the predicate is true.
-    /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, bool> condition)
-        => ReturnIf(condition, (context, value) => context);
-
-    /// <summary>
-    /// Conditional synchronous Return method with two parameters that accepts an Action and executes it if the predicate is true.
-    /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <param name="action">The action to perform on the context and value if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, bool> condition, Action<C, V> action)
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An action to be executed on the context and its value if the condition is true.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the action and returns the context if the condition is true,
+    /// or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Action<C, V> todo)
         => ReturnIf(condition, (context, value) =>
         {
-            action(context, value);
+            todo(context, value);
             return context;
         });
 
     /// <summary>
-    /// Conditional synchronous Return method with two parameters that accepts a Func and executes it if the predicate is true.
+    /// Creates a conditional return block that executes the given synchronous transformation using the context
+    /// and returns the result if the condition is met.
     /// </summary>
-    /// <param name="condition">The condition to evaluate.</param>
-    /// <param name="func">The function to apply to the context and value if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, bool> condition, Func<C, V, C> func)
-        => IfThen(condition, Return(func), Break());
-    #endregion
-
-    #region Asynchronous
-    /// <summary>
-    /// Asynchronous Return method that accepts a Func returning a ValueTask and executes it on the context.
-    /// </summary>
-    /// <param name="action">The asynchronous action to perform on the context.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, ValueTask> action)
-        => Return(async context =>
-        {
-            await action(context);
-            return context;
-        });
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, C> todo)
+        => IfThen(condition, Return(todo), Noop());
 
     /// <summary>
-    /// Asynchronous Return method that accepts a Func returning a ValueTask&lt;C&gt; and executes it on the context.
+    /// Creates a conditional return block that executes the given synchronous transformation using both the context
+    /// and its value, then returns the result if the condition is met.
     /// </summary>
-    /// <param name="func">The asynchronous function to apply to the context.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, ValueTask<C>> func)
-        => new(CreateLogger<ReturnBlock<C, V>>(), func);
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, V, C> todo)
+        => IfThen(condition, Return(todo), Noop());
 
     /// <summary>
-    /// Conditional asynchronous Return method that executes if the predicate evaluates to true.
+    /// Creates a conditional return block that executes the given asynchronous action using the context
+    /// and returns the result if the condition is met.
     /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition)
-        => ReturnIf(condition, context => ValueTask.FromResult(context));
-
-    /// <summary>
-    /// Conditional asynchronous Return method that accepts a Func returning a ValueTask and executes it if the predicate evaluates to true.
-    /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <param name="action">The asynchronous action to perform on the context if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, ValueTask> action)
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and performs an action, but returns the context unchanged.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, ValueTask> todo)
         => ReturnIf(condition, async context =>
         {
-            await action(context);
+            await todo(context);
             return context;
         });
 
     /// <summary>
-    /// Conditional asynchronous Return method that accepts a Func returning a ValueTask&lt;C&gt; and executes it if the predicate evaluates to true.
+    /// Creates a conditional return block that executes the given asynchronous action using both the context
+    /// and its value, then returns the result if the condition is met.
     /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <param name="func">The asynchronous function to apply to the context if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, ValueTask<C>> func)
-        => IfThen(condition, Return(func), Break());
-
-    /// <summary>
-    /// Asynchronous Return method that accepts a Func with two parameters (context and value) returning a ValueTask and executes it.
-    /// </summary>
-    /// <param name="action">The asynchronous action to perform on the context and value.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, V, ValueTask> action)
-        => Return(async (context, value) =>
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and its value and performs an action, but returns the context unchanged.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, V, ValueTask> todo)
+        => ReturnIf(condition, async (context, value) =>
         {
-            await action(context, value);
+            await todo(context, value);
             return context;
         });
 
     /// <summary>
-    /// Asynchronous Return method that accepts a Func with two parameters (context and value) returning a ValueTask&lt;C&gt; and executes it.
+    /// Creates a conditional return block that executes the given asynchronous transformation using the context
+    /// and returns the result if the condition is met.
     /// </summary>
-    /// <param name="func">The asynchronous function to apply to the context and value.</param>
-    /// <returns>ReturnBlock</returns>
-    public ReturnBlock<C, V> Return(Func<C, V, ValueTask<C>> func)
-        => new(CreateLogger<ReturnBlock<C,V>>(), func);
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, ValueTask<C>> todo)
+        => IfThen(condition, Return(todo), Noop());
 
     /// <summary>
-    /// Conditional asynchronous Return method with two parameters that executes if the predicate evaluates to true.
+    /// Creates a conditional return block that executes the given asynchronous transformation using both the context
+    /// and its value, then returns the result if the condition is met.
     /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, ValueTask<bool>> condition)
-        => ReturnIf(condition, context => ValueTask.FromResult(context));
+    /// <param name="condition">A predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, bool> condition, Func<C, V, ValueTask<C>> todo)
+        => IfThen(condition, Return(todo), Noop());
+
 
     /// <summary>
-    /// Conditional asynchronous Return method with two parameters that accepts a Func returning a ValueTask and executes it if the predicate evaluates to true.
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided synchronous action using the context, and returns the result.
     /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <param name="action">The asynchronous action to perform on the context and value if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, ValueTask<bool>> condition, Func<C, ValueTask> action)
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Action<C> todo)
+        => ReturnIf(condition, context =>
+        {
+            todo(context);
+            return context;
+        });
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided synchronous action using both the context and its value, and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Action<C, V> todo)
+        => ReturnIf(condition, (context, value) =>
+        {
+            todo(context, value);
+            return context;
+        });
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided synchronous transformation using the context and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, C> todo)
+        => IfThen(condition, Return(todo), Noop());
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided synchronous transformation using both the context and its value, and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">A synchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, V, C> todo)
+        => IfThen(condition, Return(todo), Noop());
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided asynchronous action using the context, and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and performs an action, but returns the context unchanged.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, ValueTask> todo)
         => ReturnIf(condition, async context =>
         {
-            await action(context);
+            await todo(context);
             return context;
         });
 
     /// <summary>
-    /// Conditional asynchronous Return method with two parameters that accepts a Func returning a ValueTask&lt;C&gt; and executes it if the predicate evaluates to true.
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided asynchronous action using both the context and its value, and returns the result.
     /// </summary>
-    /// <param name="condition">The asynchronous condition to evaluate.</param>
-    /// <param name="func">The asynchronous function to apply to the context and value if the predicate is true.</param>
-    /// <returns>BranchBlock</returns>
-    public BranchBlock<C, V> ReturnIf(Func<C, V, ValueTask<bool>> condition, Func<C, ValueTask<C>> func)
-        => IfThen(condition, Return(func), Break());
-    #endregion
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and its value and performs an action, but returns the context unchanged.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, V, ValueTask> todo)
+        => ReturnIf(condition, async (context, value) =>
+        {
+            await todo(context, value);
+            return context;
+        });
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided asynchronous transformation using the context and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, ValueTask<C>> todo)
+        => IfThen(condition, Return(todo), Noop());
+
+    /// <summary>
+    /// Creates a conditional return block that executes the given asynchronous condition, and if the condition is met,
+    /// it executes the provided asynchronous transformation using both the context and its value, and returns the result.
+    /// </summary>
+    /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
+    /// <param name="todo">An asynchronous function that takes the context and its value and returns a modified context.</param>
+    /// <returns>
+    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// if the condition is true, or performs no operation otherwise.
+    /// </returns>
+    public BranchBlock<C, V> ReturnIf(Func<C, ValueTask<bool>> condition, Func<C, V, ValueTask<C>> todo)
+        => IfThen(condition, Return(todo), Noop());
+
 }
