@@ -48,9 +48,7 @@ public class TryCatchBlock<C, V>(
         }
         return context;
 
-        /// <summary>
-        /// Executes the given block if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        /// </summary>
+        // Executes the given block if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
         static void FlipExecute(bool shouldFlip, IBlock<C, V>? block, C context)
         {
             if (block != null)
@@ -95,9 +93,7 @@ public class TryCatchBlock<C, V>(
         }
         return context;
 
-        /// <summary>
-        /// Executes the given block asynchronously if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        /// </summary>
+        // Executes the given block asynchronously if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
         static async Task FlipExecuteAsync(bool shouldFlip, IBlock<C, V>? block, C context)
         {
             if (block != null)

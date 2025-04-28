@@ -118,17 +118,20 @@ var builder = serviceProvider.GetRequiredService<BlockBuilder<MyContextModel, My
 var pipe = builder.CreatePipe("Word Counter")
     .Then(builder.ReturnIf(
         condition: c => string.IsNullOrWhiteSpace(c.RequestUrl),
-        todo: (c, v) =>
+        doThis: (c, v) => c.SignalBreak(new MyFailureState
         {
-            c.Value = new MyFailureState
-            {
-                CorrelationId = c.CorrelationId,
-                Value = v,
-                FailureReason = "Request Url empty"
-            };
-        }))
+            CorrelationId = c.CorrelationId,
+            Value = v,
+            FailureReason = "Request Url empty"
+        })
+    ))
     .Then<RetrieveTextBlockAsync>()
     .Then(builder.Run((c, v) => WriteToConsole(v.RetrievedAt)))
+    .Then(builder.Run(c =>
+    {
+        Console.WriteLine();
+        return c;
+    }))
     .Then<WordCountBlock>()
     .Then(builder.Run((c, v) => WriteToConsole(v.ProcessedAt)))
     ;
@@ -160,19 +163,21 @@ trce: MM.PipeBlocks.PipeBlock[0]
 trce: MM.PipeBlocks.PipeBlock[0]
       Added block: 'pbTest.RetrieveTextBlockAsync' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel]' to pipe: 'Word Counter'
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_3)' to pipe: 'Word Counter'
+trce: MM.PipeBlocks.PipeBlock[0]
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_4)' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
       Added block: 'pbTest.WordCountBlock' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel]' to pipe: 'Word Counter'
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_5)' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Executing pipe: 'Word Counter' synchronously for context: 1f721e87-4f81-4185-ad9a-a236a3f90ad9
+      Executing pipe: 'Word Counter' synchronously for context: c84e5d9a-db87-4f8e-b98c-248a5bc1d3a6
 info: MM.PipeBlocks.Blocks.ReturnBlock[0]
-      Context 1f721e87-4f81-4185-ad9a-a236a3f90ad9 terminated in Return Block
+      Context c84e5d9a-db87-4f8e-b98c-248a5bc1d3a6 terminated in Return Block
 trce: MM.PipeBlocks.PipeBlock[0]
-      Stopping synchronous pipe: 'Word Counter' execution at step: 1 for context: 1f721e87-4f81-4185-ad9a-a236a3f90ad9
+      Stopping synchronous pipe: 'Word Counter' execution at step: 1 for context: c84e5d9a-db87-4f8e-b98c-248a5bc1d3a6
 trce: MM.PipeBlocks.PipeBlock[0]
-      Completed synchronous pipe: 'Word Counter' execution for context: 1f721e87-4f81-4185-ad9a-a236a3f90ad9
+      Completed synchronous pipe: 'Word Counter' execution for context: c84e5d9a-db87-4f8e-b98c-248a5bc1d3a6
 Failure: Request Url empty
 ```
 
@@ -197,16 +202,19 @@ trce: MM.PipeBlocks.PipeBlock[0]
 trce: MM.PipeBlocks.PipeBlock[0]
       Added block: 'pbTest.RetrieveTextBlockAsync' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel]' to pipe: 'Word Counter'
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_3)' to pipe: 'Word Counter'
+trce: MM.PipeBlocks.PipeBlock[0]
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_4)' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
       Added block: 'pbTest.WordCountBlock' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel]' to pipe: 'Word Counter'
+      Added block: 'MM.PipeBlocks.Blocks.FuncBlock`2[pbTest.MyContextModel,pbTest.MyValueModel] (Method: Program+<>c.<<Main>$>b__0_5)' to pipe: 'Word Counter'
 trce: MM.PipeBlocks.PipeBlock[0]
-      Executing pipe: 'Word Counter' synchronously for context: eb5c4f98-a5aa-4e96-8ac5-2f2d9c426d5d
-20250425 075300
-20250425 075300
+      Executing pipe: 'Word Counter' synchronously for context: 1d31f160-bad4-4553-b3b3-a7358ba3f775
+20250428 074750
+
+20250428 074750
 trce: MM.PipeBlocks.PipeBlock[0]
-      Completed synchronous pipe: 'Word Counter' execution for context: eb5c4f98-a5aa-4e96-8ac5-2f2d9c426d5d
+      Completed synchronous pipe: 'Word Counter' execution for context: 1d31f160-bad4-4553-b3b3-a7358ba3f775
 Success: 30475 words
 ```

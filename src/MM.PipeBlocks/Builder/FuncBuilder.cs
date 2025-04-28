@@ -5,8 +5,6 @@ namespace MM.PipeBlocks;
 /// <summary>
 /// Provides methods to execute synchronous and asynchronous functions or actions within a block context.
 /// </summary>
-/// <typeparam name="C">The type of context, implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of value associated with the context.</typeparam>
 public partial class BlockBuilder<C, V>
     where C : IContext<V>
 {

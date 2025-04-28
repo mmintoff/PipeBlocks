@@ -5,8 +5,6 @@ namespace MM.PipeBlocks;
 /// <summary>
 /// Provides methods to build conditional and branching blocks in a control-flow graph.
 /// </summary>
-/// <typeparam name="C">The type of context, implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of value stored in the context.</typeparam>
 public partial class BlockBuilder<C, V>
     where C : IContext<V>
 {

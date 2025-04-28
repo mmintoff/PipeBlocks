@@ -1,4 +1,6 @@
 ﻿using MM.PipeBlocks.Abstractions;
+using System;
+using System.Reflection;
 
 namespace MM.PipeBlocks.Blocks;
 /// <summary>
@@ -12,26 +14,27 @@ public class FuncBlock<C, V> : ISyncBlock<C, V>
     private readonly bool _isFunc;
     private readonly Either<Func<C, C>, Func<C, V, C>>? _func;
     private readonly Either<Action<C>, Action<C, V>>? _action;
+    private readonly string _fullName;
 
     /// <summary>
     /// Initializes a new instance using a function that transforms the context.
     /// </summary>
-    public FuncBlock(Func<C, C> func) => (_func, _isFunc) = (func, true);
+    public FuncBlock(Func<C, C> func) => (_func, _isFunc, _fullName) = (func, true, GetFullName(func?.Method));
 
     /// <summary>
     /// Initializes a new instance using a function that transforms the context and takes a value.
     /// </summary>
-    public FuncBlock(Func<C, V, C> func) => (_func, _isFunc) = (func, true);
+    public FuncBlock(Func<C, V, C> func) => (_func, _isFunc, _fullName) = (func, true, GetFullName(func?.Method));
 
     /// <summary>
     /// Initializes a new instance using an action that operates on the context.
     /// </summary>
-    public FuncBlock(Action<C> action) => (_action, _isFunc) = (action, false);
+    public FuncBlock(Action<C> action) => (_action, _isFunc, _fullName) = (action, false, GetFullName(action?.Method));
 
     /// <summary>
     /// Initializes a new instance using an action that operates on the context and takes a value.
     /// </summary>
-    public FuncBlock(Action<C, V> action) => (_action, _isFunc) = (action, false);
+    public FuncBlock(Action<C, V> action) => (_action, _isFunc, _fullName) = (action, false, GetFullName(action?.Method));
 
     /// <summary>
     /// Executes the function or action against the given context.
@@ -61,6 +64,12 @@ public class FuncBlock<C, V> : ISyncBlock<C, V>
             }
         }
     }
+
+    string GetFullName(MethodInfo? method)
+        => $"{base.ToString() ?? nameof(FuncBlock<C, V>)} (Method: {method?.DeclaringType?.FullName ?? "UnknownType"}.{method?.Name ?? "UnknownMethod"})";
+
+    public override string ToString()
+        => _fullName;
 }
 
 /// <summary>
@@ -74,26 +83,27 @@ public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
     private readonly bool _isFunc;
     private readonly Either<Func<C, ValueTask<C>>, Func<C, V, ValueTask<C>>>? _func;
     private readonly Either<Func<C, ValueTask>, Func<C, V, ValueTask>>? _action;
+    private readonly string _fullName;
 
     /// <summary>
     /// Initializes a new instance using an asynchronous function that returns a context.
     /// </summary>
-    public AsyncFuncBlock(Func<C, ValueTask<C>> func) => (_func, _isFunc) = (func, true);
+    public AsyncFuncBlock(Func<C, ValueTask<C>> func) => (_func, _isFunc, _fullName) = (func, true, GetFullName(func?.Method));
 
     /// <summary>
     /// Initializes a new instance using an asynchronous function that returns a context and accepts a value.
     /// </summary>
-    public AsyncFuncBlock(Func<C, V, ValueTask<C>> func) => (_func, _isFunc) = (func, true);
+    public AsyncFuncBlock(Func<C, V, ValueTask<C>> func) => (_func, _isFunc, _fullName) = (func, true, GetFullName(func?.Method));
 
     /// <summary>
     /// Initializes a new instance using an asynchronous action.
     /// </summary>
-    public AsyncFuncBlock(Func<C, ValueTask> action) => (_action, _isFunc) = (action, false);
+    public AsyncFuncBlock(Func<C, ValueTask> action) => (_action, _isFunc, _fullName) = (action, false, GetFullName(action?.Method));
 
     /// <summary>
     /// Initializes a new instance using an asynchronous action that accepts a value.
     /// </summary>
-    public AsyncFuncBlock(Func<C, V, ValueTask> action) => (_action, _isFunc) = (action, false);
+    public AsyncFuncBlock(Func<C, V, ValueTask> action) => (_action, _isFunc, _fullName) = (action, false, GetFullName(action?.Method));
 
     /// <summary>
     /// Executes the asynchronous function or action against the given context.
@@ -123,4 +133,10 @@ public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
             }
         }
     }
+
+    string GetFullName(MethodInfo? method)
+        => $"{base.ToString() ?? nameof(AsyncFuncBlock<C, V>)} (Method: {method?.DeclaringType?.FullName ?? "UnknownType"}.{method?.Name ?? "UnknownMethod"})";
+
+    public override string ToString()
+        => _fullName;
 }
