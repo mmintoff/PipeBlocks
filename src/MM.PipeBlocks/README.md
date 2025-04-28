@@ -61,13 +61,12 @@ public class RetrieveTextBlockAsync : AsyncCodeBlock<MyContextModel, MyValueMode
         }
         catch (Exception ex)
         {
-            context.IsFinished = true;
-            context.Value = new MyFailureState
+            context.SignalBreak(new MyFailureState
             {
                 Value = value,
                 CorrelationId = context.CorrelationId,
                 FailureReason = ex.Message
-            };
+            });
         }
         return context;
     }
