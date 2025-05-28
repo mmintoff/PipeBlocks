@@ -7,7 +7,7 @@ namespace MM.PipeBlocks.Extensions;
 /// </summary>
 /// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type associated with the context.</typeparam>
-public sealed class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
+public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     where C : IContext<V>
 {
     private readonly BlockBuilder<C, V> Builder;
@@ -85,13 +85,13 @@ public sealed class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, 
     /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into a synchronous function.
     /// </summary>
     /// <returns>A function that executes the block synchronously.</returns>
-    public Func<C, C> ToFunc() => Execute;
+    public PipeBlockDelegate<C, V> ToDelegate() => Execute;
 
     /// <summary>
     /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into an asynchronous function.
     /// </summary>
     /// <returns>A function that executes the block asynchronously.</returns>
-    public Func<C, ValueTask<C>> ToAsyncFunc() => ExecuteAsync;
+    public PipeBlockAsyncDelegate<C, V> ToAsyncDelegate() => ExecuteAsync;
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks.

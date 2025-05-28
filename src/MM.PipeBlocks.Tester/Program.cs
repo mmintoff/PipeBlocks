@@ -1,16 +1,17 @@
-﻿using MM.PipeBlocks.Tester;
-using MM.PipeBlocks.Abstractions;
+﻿using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MM.PipeBlocks.Tester;
+using BenchmarkDotNet.Running;
 using MM.PipeBlocks.Blocks;
 using MM.PipeBlocks.Extensions;
 
+//BenchmarkRunner.Run<PipelineBenchmark>();
+
 var serviceCollection = new ServiceCollection();
-serviceCollection.AddTransient<IBlockResolver<CustomContext, ICustomValue>, ServiceProviderBackedResolver<CustomContext, ICustomValue>>();
-serviceCollection.AddTransient<IBlockResolver<CustomContext2, ICustomValue>, ServiceProviderBackedResolver<CustomContext2, ICustomValue>>();
-serviceCollection.AddTransient<BlockBuilder<CustomContext, ICustomValue>>();
-serviceCollection.AddTransient<BlockBuilder<CustomContext2, ICustomValue>>();
+serviceCollection.AddTransient<IBlockResolver<IContext<ICustomValue>, ICustomValue>, ServiceProviderBackedResolver<IContext<ICustomValue>, ICustomValue>>();
+serviceCollection.AddTransient<BlockBuilder<IContext<ICustomValue>, ICustomValue>>();
 serviceCollection.AddTransient<DummyBlock>();
 serviceCollection.AddTransient<CustomCodeBlock>();
 serviceCollection.AddLogging(configure =>
@@ -22,55 +23,20 @@ serviceCollection.AddLogging(configure =>
 
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
-var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomContext, ICustomValue>>();
-var builder2 = serviceProvider.GetRequiredService<BlockBuilder<CustomContext2, ICustomValue>>();
-
-var adapterPipe = builder.CreatePipe("adapterPipe", builder2, new MyAdapter())
-    .Then(b => b.Run(c => Console.WriteLine(c.Start)))
-    ;
-
-var startFromPipe = builder.CreatePipe("steppedPipe", c => c.Step)
-    .Then(builder.Run(c => Console.WriteLine("0")))
-    .Then(builder.Run(c => Console.WriteLine("1")))
-    .Then(builder.Run(c => Console.WriteLine("2")))
-    .Then(builder.Run(c => Console.WriteLine("3")))
-    .Then(adapterPipe)
-    ;
+var builder = serviceProvider.GetRequiredService<BlockBuilder<IContext<ICustomValue>, ICustomValue>>();
 
 var pipe = builder
-    .CreatePipe("mainPipe")
-    .Then(b => b.Run(startFromPipe.ToFunc()))
-    .Then(b => b.Run(Do))
-    .Then(b => b.Run(DoAsync))
-    .Then(b => b.Run(DoAsync2))
+    .CreatePipe("testPipe")
+    .Then(b => b.Run(_ => Console.WriteLine("1")))
+    .Then(b => b.Return())
+    .Then<DummyBlock>()
+    .Then<CustomCodeBlock>()
+    .Then(b => b.Run(_ => Console.WriteLine("2")))
     ;
 
-pipe.Execute(new CustomContext(new CustomValue1
-{
-    Count = 57,
-    Name = "Henry"
-})
-{
-    Step = 2
-});
+pipe.Execute(new CustomContext(new CustomValue1()));
+pipe.Execute(new CustomContext2(new CustomValue1()));
 
-void Do()
-{
-    Console.WriteLine("Method: Do");
-}
-
-async Task DoAsync()
-{
-    Console.WriteLine("Method: DoAsync");
-    await Task.Delay(1);
-}
-
-async Task<bool> DoAsync2()
-{
-    Console.WriteLine("Method: DoAsync2");
-    await Task.Delay(1);
-    return false;
-}
 
 public class MyAdapter : IAdapter<CustomContext, ICustomValue, CustomContext2, ICustomValue>
 {
@@ -94,18 +60,18 @@ public class MyAdapter : IAdapter<CustomContext, ICustomValue, CustomContext2, I
     };
 }
 
-public class DummyBlock : ISyncBlock<CustomContext, ICustomValue>
+public class DummyBlock : ISyncBlock<IContext<ICustomValue>, ICustomValue>
 {
-    public CustomContext Execute(CustomContext context)
+    public IContext<ICustomValue> Execute(IContext<ICustomValue> context)
     {
         Console.WriteLine($"Executing {context.Value.Match(_ => 0, x => x.Count)}");
         return context;
     }
 }
 
-public class CustomCodeBlock : CodeBlock<CustomContext, ICustomValue>
+public class CustomCodeBlock : CodeBlock<IContext<ICustomValue>, ICustomValue>
 {
-    protected override CustomContext Execute(CustomContext context, ICustomValue value)
+    protected override IContext<ICustomValue> Execute(IContext<ICustomValue> context, ICustomValue value)
     {
         Console.WriteLine($"Executing {context.Value.Match(_ => 0, x => x.Count)}");
         return context;

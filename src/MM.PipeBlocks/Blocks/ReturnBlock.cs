@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
 using Nito.AsyncEx;
+using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks.Blocks;
 /// <summary>
@@ -12,10 +13,38 @@ namespace MM.PipeBlocks.Blocks;
 public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     where C : IContext<V>
 {
-    private readonly bool _isSyncFunc;
-    private readonly Either<Func<C, C>, Func<C, V, C>>? _func;
-    private readonly Either<Func<C, ValueTask<C>>, Func<C, V, ValueTask<C>>>? _asyncFunc;
+    private readonly Func<C, C>? _syncContextFunc;
+    private readonly Func<C, V, C>? _syncContextValueFunc;
+    private readonly Func<C, ValueTask<C>>? _asyncContextFunc;
+    private readonly Func<C, V, ValueTask<C>>? _asyncContextValueFunc;
+
+    private readonly ExecutionStrategy _executionStrategy;
     private readonly ILogger<ReturnBlock<C, V>> _logger;
+
+    private static readonly Action<ILogger, Guid, Exception?> s_logContextTerminated =
+        LoggerMessage.Define<Guid>(
+            LogLevel.Information,
+            default,
+            "Context {CorrelationId} terminated in Return Block");
+
+    private enum ExecutionStrategy : byte
+    {
+        NoTransform,
+        SyncContext,
+        SyncContextValue,
+        AsyncContext,
+        AsyncContextValue
+    }
+
+    /// <summary>
+    /// Initializes a return block that marks context as finished without transformation.
+    /// </summary>
+    /// <param name="logger">The logger for diagnostics and tracing.</param>
+    public ReturnBlock(ILogger<ReturnBlock<C, V>> logger)
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _executionStrategy = ExecutionStrategy.NoTransform;
+    }
 
     /// <summary>
     /// Initializes a synchronous return block using a transformation function.
@@ -23,7 +52,11 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
     /// <param name="func">A function that transforms the context.</param>
     public ReturnBlock(ILogger<ReturnBlock<C, V>> logger, Func<C, C> func)
-        => (_logger, _func, _isSyncFunc) = (logger, func, true);
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _syncContextFunc = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.SyncContext;
+    }
 
     /// <summary>
     /// Initializes a synchronous return block using a transformation function that also uses the context value.
@@ -31,7 +64,11 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
     /// <param name="func">A function that transforms the context using its value.</param>
     public ReturnBlock(ILogger<ReturnBlock<C, V>> logger, Func<C, V, C> func)
-        => (_logger, _func, _isSyncFunc) = (logger, func, true);
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _syncContextValueFunc = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.SyncContextValue;
+    }
 
     /// <summary>
     /// Initializes an asynchronous return block using a transformation function.
@@ -39,7 +76,11 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
     /// <param name="func">An asynchronous function that transforms the context.</param>
     public ReturnBlock(ILogger<ReturnBlock<C, V>> logger, Func<C, ValueTask<C>> func)
-        => (_logger, _asyncFunc, _isSyncFunc) = (logger, func, false);
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _asyncContextFunc = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.AsyncContext;
+    }
 
     /// <summary>
     /// Initializes an asynchronous return block using a transformation function that also uses the context value.
@@ -47,7 +88,11 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
     /// <param name="func">An asynchronous function that transforms the context using its value.</param>
     public ReturnBlock(ILogger<ReturnBlock<C, V>> logger, Func<C, V, ValueTask<C>> func)
-        => (_logger, _asyncFunc, _isSyncFunc) = (logger, func, false);
+    {
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _asyncContextValueFunc = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.AsyncContextValue;
+    }
 
     /// <summary>
     /// Executes the block synchronously, transforming and finalizing the context.
@@ -57,17 +102,25 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     public C Execute(C context)
     {
         context.IsFinished = true;
-        _logger.LogInformation("Context {CorrelationId} terminated in Return Block", context.CorrelationId);
+        s_logContextTerminated(_logger, context.CorrelationId, null);
+
         return context.Value.Match(
             _ => context,
-            value => _isSyncFunc
-                    ? _func!.Match(
-                        f => f(context),
-                        f => f(context, value))
-                    : AsyncContext.Run(async () => await _asyncFunc!.MatchAsync(
-                        f => f(context),
-                        f => f(context, value)))
-        );
+            x => ExecuteWithValue(context, x));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private C ExecuteWithValue(C context, V value)
+    {
+        return _executionStrategy switch
+        {
+            ExecutionStrategy.NoTransform => context,
+            ExecutionStrategy.SyncContext => _syncContextFunc!(context),
+            ExecutionStrategy.SyncContextValue => _syncContextValueFunc!(context, value),
+            ExecutionStrategy.AsyncContext => GetResultFromAsync(_asyncContextFunc!(context)),
+            ExecutionStrategy.AsyncContextValue => GetResultFromAsync(_asyncContextValueFunc!(context, value)),
+            _ => throw new InvalidOperationException("Invalid execution strategy")
+        };
     }
 
     /// <summary>
@@ -75,21 +128,36 @@ public sealed class ReturnBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The execution context.</param>
     /// <returns>A task that represents the asynchronous operation, containing the updated context.</returns>
-    public async ValueTask<C> ExecuteAsync(C context)
+    public ValueTask<C> ExecuteAsync(C context)
     {
         context.IsFinished = true;
-        _logger.LogInformation("Context {CorrelationId} terminated in Return Block", context.CorrelationId);
-        return await context.Value.MatchAsync(
-            _ => ValueTask.FromResult(context),
-            value => _isSyncFunc
-                        ? ValueTask.FromResult(_func!.Match(
-                            f => f(context),
-                            f => f(context, value)))
-                        : _asyncFunc!.MatchAsync(
-                            f => f(context),
-                            f => f(context, value))
-        );
+        s_logContextTerminated(_logger, context.CorrelationId, null);
+
+        return context.Value.Match(
+            _ => new ValueTask<C>(context), // If value is Some but we're not using it, just return context
+            x => ExecuteWithValueAsync(context, x));
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ValueTask<C> ExecuteWithValueAsync(C context, V value)
+    {
+        return _executionStrategy switch
+        {
+            ExecutionStrategy.NoTransform => new ValueTask<C>(context),
+            ExecutionStrategy.SyncContext => new ValueTask<C>(_syncContextFunc!(context)),
+            ExecutionStrategy.SyncContextValue => new ValueTask<C>(_syncContextValueFunc!(context, value)),
+            ExecutionStrategy.AsyncContext => _asyncContextFunc!(context),
+            ExecutionStrategy.AsyncContextValue => _asyncContextValueFunc!(context, value),
+            _ => throw new InvalidOperationException("Invalid execution strategy")
+        };
+    }
+
+    // Helper method to synchronously get result from async operation
+    // This should only be used when we know the operation can be completed synchronously
+    // or when we have no choice but to block (like in the sync Execute method)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static C GetResultFromAsync(ValueTask<C> task)
+        => task.IsCompleted ? task.Result : AsyncContext.Run(task.AsTask);
 }
 
 /// <summary>

@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
     <Authors>Mark Mintoff</Authors>
     <Description>A composable pipeline library for defining process flows with sequential execution, branching, try/catch handling, and mixed sync/async support. Each process step is encapsulated as a "block," enabling modular and unit-testable workflows. The pipeline follows a two-rail system, breaking early on failure, with results wrapped in an Either monad for clear success/failure state management.</Description>
     <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>

@@ -1,5 +1,6 @@
 ﻿using MM.PipeBlocks.Abstractions;
 using Nito.AsyncEx;
+using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks;
 /// <summary>
@@ -21,7 +22,7 @@ public static class BlockExecutor
         => block switch
         {
             ISyncBlock<C, V> syncBlock => syncBlock.Execute(context),
-            IAsyncBlock<C, V> asyncBlock => AsyncContext.Run(async () => await asyncBlock.ExecuteAsync(context)),
+            IAsyncBlock<C, V> asyncBlock => ExecuteValueTaskSynchronously<C, V>(asyncBlock.ExecuteAsync(context)),
             _ => context
         };
 
@@ -42,4 +43,9 @@ public static class BlockExecutor
             ISyncBlock<C, V> syncBlock => ValueTask.FromResult(syncBlock.Execute(context)),
             _ => ValueTask.FromResult(context)
         };
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static C ExecuteValueTaskSynchronously<C, V>(ValueTask<C> task)
+        where C: IContext<V>
+        => task.IsCompleted ? task.Result : AsyncContext.Run(task.AsTask);
 }
