@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Internal;
 
@@ -13,6 +14,12 @@ namespace MM.PipeBlocks;
 public partial class BlockBuilder<C, V>(IBlockResolver<C, V> resolver, ILoggerFactory loggerFactory)
     where C : IContext<V>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver and NoopLoggerFactory.
+    /// </summary>
+    public BlockBuilder()
+        : this(new DefaultBlockResolver<C, V>(), new NoopLoggerFactory()) { }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver.
     /// </summary>

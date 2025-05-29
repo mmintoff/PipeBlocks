@@ -28,7 +28,7 @@ var builder = serviceProvider.GetRequiredService<BlockBuilder<IContext<ICustomVa
 var pipe = builder
     .CreatePipe("testPipe")
     .Then(b => b.Run(_ => Console.WriteLine("1")))
-    .Then(b => b.Return())
+    //.Then(b => b.Return())
     .Then<DummyBlock>()
     .Then<CustomCodeBlock>()
     .Then(b => b.Run(_ => Console.WriteLine("2")))

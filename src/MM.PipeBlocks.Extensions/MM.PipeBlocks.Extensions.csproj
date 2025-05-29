@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <Version>1.0.2</Version>
+    <Version>1.0.3</Version>
     <Authors>Mark Mintoff</Authors>
     <Description>Additional functionality</Description>
     <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>
@@ -28,6 +28,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Polly" Version="8.5.2" />
+    <PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>

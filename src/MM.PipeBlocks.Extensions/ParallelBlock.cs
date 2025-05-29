@@ -86,8 +86,8 @@ public static partial class BuilderExtensions
     /// <returns>A new <see cref="ParallelBlock{C, V}"/> instance.</returns>
     public static ParallelBlock<C, V> Parallelize<C, V>(this BlockBuilder<C, V> _,
         IBlock<C, V>[] blocks,
-        Either<Join<C, V>, JoinAsync<C, V>> joiner,
-        Clone<C, V> cloner)
+        Clone<C, V> cloner,
+        Either<Join<C, V>, JoinAsync<C, V>> joiner)
         where C : IContext<V>
         => new(blocks, joiner, cloner);
 }
