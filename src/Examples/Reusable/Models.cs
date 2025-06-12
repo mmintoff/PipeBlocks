@@ -18,8 +18,8 @@ public class FileDownloadContext(ConcreteValue_001 value) : ICustomContext
     public bool IsFinished { get; set; }
     public bool IsFlipped { get; set; }
     
-    public string FileName { get; set; }
-    public string SourceUrl { get; set; }
+    public required string FileName { get; set; }
+    public required string SourceUrl { get; set; }
 }
 
 public class FileUploadContext(ConcreteValue_002 value) : ICustomContext
@@ -29,8 +29,8 @@ public class FileUploadContext(ConcreteValue_002 value) : ICustomContext
     public bool IsFinished { get; set; }
     public bool IsFlipped { get; set; }
     
-    public string FileName { get; set; }
-    public string DestinationUrl { get; set; }
+    public required string FileName { get; set; }
+    public required string DestinationUrl { get; set; }
 }
 
 public class FileCompressionContext(ConcreteValue_001 value) : ICustomContext
@@ -40,6 +40,6 @@ public class FileCompressionContext(ConcreteValue_001 value) : ICustomContext
     public bool IsFinished { get; set; }
     public bool IsFlipped { get; set; }
 
-    public string FileName { get; set; }
-    public string ArchiveName { get; set; }
+    public required string FileName { get; set; }
+    public required string ArchiveName { get; set; }
 }

@@ -1,4 +1,6 @@
-﻿namespace MM.PipeBlocks.Abstractions;
+﻿using MM.PipeBlocks.Abstractions;
+
+namespace MM.PipeBlocks.Abstractions;
 /// <summary>
 /// Represents the context that holds a value of type <typeparamref name="V"/> and its associated state, including a correlation ID, failure state, and execution flags.
 /// </summary>
@@ -41,19 +43,5 @@ public interface IContext<V>
     void SignalBreak()
     {
         IsFinished = true;
-    }
-}
-
-public static class IContextExtensions
-{
-    public static void SignalBreak<V>(this IContext<V> context, IFailureState<V> failureState)
-    {
-        context.Value = new(failureState);
-        SignalBreak(context);
-    }
-
-    public static void SignalBreak<V>(this IContext<V> context)
-    {
-        context.IsFinished = true;
     }
 }

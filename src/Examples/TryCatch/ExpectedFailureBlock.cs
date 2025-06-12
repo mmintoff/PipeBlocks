@@ -1,5 +1,5 @@
 ﻿using MM.PipeBlocks.Blocks;
-using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks;
 
 namespace TryCatch;
 public class ExpectedFailureBlock : CodeBlock<MyContextType, MyValueType>

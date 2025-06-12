@@ -293,7 +293,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
             medianFirstRetryDelay: TimeSpan.FromSeconds(1),
             retryCount: retryCount);
 
-    private static ExceptionHandler<C, V> _defaultExceptionHandler = (c, v, e) =>
+    private static readonly ExceptionHandler<C, V> _defaultExceptionHandler = (c, v, e) =>
         c.SignalBreak(new DefaultFailureState<V>(v)
         {
             FailureReason = e.Message,

@@ -1,5 +1,5 @@
-﻿using MM.PipeBlocks.Blocks;
-using MM.PipeBlocks.Abstractions;
+﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Blocks;
 
 namespace FailureState;
 public class SecondBlock : CodeBlock<MyContextType, MyValueType>

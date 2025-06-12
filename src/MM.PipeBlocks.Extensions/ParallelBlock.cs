@@ -61,12 +61,12 @@ public class ParallelBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
             async joiner => await joiner(context, result));
     }
 
-    private C[] CloneContexts(C context) => _blocks.Select(_ =>
+    private C[] CloneContexts(C context) => [.. _blocks.Select(_ =>
     {
         var clone = _cloner(context);
         clone.IsFlipped = context.IsFlipped;
         return clone;
-    }).ToArray();
+    })];
 }
 
 /// <summary>

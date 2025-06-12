@@ -5,8 +5,6 @@ namespace MM.PipeBlocks;
 /// <summary>
 /// Provides methods for building exception-handling flow blocks such as try-catch, try-finally, and try-catch-finally.
 /// </summary>
-/// <typeparam name="C">The type of the context, implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
 public partial class BlockBuilder<C, V>
     where C : IContext<V>
 {

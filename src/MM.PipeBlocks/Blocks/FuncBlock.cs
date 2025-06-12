@@ -71,8 +71,8 @@ public class FuncBlock<C, V> : ISyncBlock<C, V>
     public C Execute(C context)
     {
         return context.Value.Match(
-            some => context.IsFlipped ? ExecuteWithValue(context, some.Value) : context,
-            none => ExecuteWithValue(context, none));
+            f => context.IsFlipped ? ExecuteWithValue(context, f.Value) : context,
+            s => ExecuteWithValue(context, s));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,8 +192,8 @@ public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
     public ValueTask<C> ExecuteAsync(C context)
     {
         return context.Value.Match(
-            some => context.IsFlipped ? ExecuteWithValueAsync(context, some.Value) : new ValueTask<C>(context),
-            none => ExecuteWithValueAsync(context, none));
+            f => context.IsFlipped ? ExecuteWithValueAsync(context, f.Value) : new ValueTask<C>(context),
+            s => ExecuteWithValueAsync(context, s));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

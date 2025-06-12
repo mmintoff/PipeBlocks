@@ -7,33 +7,21 @@ namespace MM.PipeBlocks.Extensions;
 /// </summary>
 /// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type associated with the context.</typeparam>
-public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
+/// <remarks>
+/// Initializes a new instance of the <see cref="StartFromPipeBlock{C, V}"/> class.
+/// </remarks>
+/// <param name="pipeName">The name of the pipe.</param>
+/// <param name="startStepFunc">The function to determine the step to start from.</param>
+/// <param name="blockBuilder">The block builder used to resolve blocks.</param>
+public partial class StartFromPipeBlock<C, V>(
+        string pipeName,
+        Func<C, int> startStepFunc,
+        BlockBuilder<C, V> blockBuilder
+        ) : ISyncBlock<C, V>, IAsyncBlock<C, V>
     where C : IContext<V>
 {
-    private readonly BlockBuilder<C, V> Builder;
-    private readonly List<IBlock<C, V>> _blocks = new();
-    private readonly Func<C, int> _startStepFunc;
-    private readonly string _pipeName;
-    private readonly ILogger<StartFromPipeBlock<C, V>> _logger;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="StartFromPipeBlock{C, V}"/> class.
-    /// </summary>
-    /// <param name="pipeName">The name of the pipe.</param>
-    /// <param name="startStepFunc">The function to determine the step to start from.</param>
-    /// <param name="blockBuilder">The block builder used to resolve blocks.</param>
-    public StartFromPipeBlock
-        (
-            string pipeName,
-            Func<C, int> startStepFunc,
-            BlockBuilder<C, V> blockBuilder
-        )
-    {
-        _pipeName = pipeName;
-        _startStepFunc = startStepFunc;
-        Builder = blockBuilder;
-        _logger = blockBuilder.CreateLogger<StartFromPipeBlock<C, V>>();
-    }
+    private readonly List<IBlock<C, V>> _blocks = [];
+    private readonly ILogger<StartFromPipeBlock<C, V>> _logger = blockBuilder.CreateLogger<StartFromPipeBlock<C, V>>();
 
     /// <summary>
     /// Executes the blocks synchronously, starting from a specified step, and returns the modified context.
@@ -42,19 +30,19 @@ public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C,
     /// <returns>The modified context after executing the blocks.</returns>
     public C Execute(C context)
     {
-        int i = _startStepFunc(context);
-        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", _pipeName, context.CorrelationId, i);
+        int i = startStepFunc(context);
+        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", pipeName, context.CorrelationId, i);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(context))
             {
-                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", _pipeName, i, context.CorrelationId);
+                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, context.CorrelationId);
                 break;
             }
 
             context = BlockExecutor.ExecuteSync(_blocks[i], context);
         }
-        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", _pipeName, context.CorrelationId);
+        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, context.CorrelationId);
         return context;
     }
 
@@ -65,19 +53,19 @@ public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C,
     /// <returns>A task representing the asynchronous operation, with the modified context after execution.</returns>
     public async ValueTask<C> ExecuteAsync(C context)
     {
-        int i = _startStepFunc(context);
-        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", _pipeName, context.CorrelationId, i);
+        int i = startStepFunc(context);
+        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", pipeName, context.CorrelationId, i);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(context))
             {
-                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", _pipeName, i, context.CorrelationId);
+                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, context.CorrelationId);
                 break;
             }
 
             context = await BlockExecutor.ExecuteAsync(_blocks[i], context);
         }
-        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", _pipeName, context.CorrelationId);
+        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, context.CorrelationId);
         return context;
     }
 
@@ -108,7 +96,7 @@ public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C,
     /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
     public StartFromPipeBlock<C, V> Then<X>()
         where X : IBlock<C, V>
-        => AddBlock(Builder.ResolveInstance<X>());
+        => AddBlock(blockBuilder.ResolveInstance<X>());
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks, based on a function that resolves the block.
@@ -116,12 +104,12 @@ public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C,
     /// <param name="func">The function that resolves the block to add.</param>
     /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
     public StartFromPipeBlock<C, V> Then(Func<BlockBuilder<C, V>, IBlock<C, V>> func)
-        => AddBlock(func(Builder));
+        => AddBlock(func(blockBuilder));
 
     private StartFromPipeBlock<C, V> AddBlock(IBlock<C, V> block)
     {
         _blocks.Add(block);
-        _logger.LogTrace("Added block: '{Type}' to pipe: '{name}'", block.ToString(), _pipeName);
+        _logger.LogTrace("Added block: '{Type}' to pipe: '{name}'", block.ToString(), pipeName);
         return this;
     }
 
@@ -133,7 +121,7 @@ public partial class StartFromPipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C,
         _ => true,
         _ => false);
 
-    public override string ToString() => _pipeName;
+    public override string ToString() => pipeName;
 }
 
 /// <summary>

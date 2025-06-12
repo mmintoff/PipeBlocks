@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Internal;
 

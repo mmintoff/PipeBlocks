@@ -13,7 +13,7 @@ var pipe = builder.CreatePipe("dice rolls")
                         new Clone<MyContextType, MyValueType>(c => new MyContextType(c.Value)),
                         new Join<MyContextType, MyValueType>((c, v) =>
                         {
-                            c.Digits = v.SelectMany(x => x.Digits).ToArray();
+                            c.Digits = [.. v.SelectMany(x => x.Digits)];
                             return c;
                         })))
                     ;

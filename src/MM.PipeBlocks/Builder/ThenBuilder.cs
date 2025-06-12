@@ -39,36 +39,36 @@ public partial class BlockBuilder<C, V>
     #region If-Then-Else Non-Generic
 
     /// <summary>
-    /// Executes <paramref name="doThis"/> if the condition is true; otherwise, executes <paramref name="orThis"/>.
+    /// Executes <paramref name="doThis"/> if the condition is true; otherwise, executes <paramref name="elseThis"/>.
     /// </summary>
-    public BranchBlock<C, V> IfThen(Func<C, bool> condition, IBlock<C, V> doThis, IBlock<C, V> orThis)
+    public BranchBlock<C, V> IfThen(Func<C, bool> condition, IBlock<C, V> doThis, IBlock<C, V> elseThis)
         => Switch(context => context.Value.Match(
                 _ => context.IsFlipped && condition(context),
-                _ => condition(context)) ? doThis : orThis);
+                _ => condition(context)) ? doThis : elseThis);
 
     /// <summary>
-    /// Executes <paramref name="doThis"/> if the value-based condition is true; otherwise, executes <paramref name="orThis"/>.
+    /// Executes <paramref name="doThis"/> if the value-based condition is true; otherwise, executes <paramref name="elseThis"/>.
     /// </summary>
-    public BranchBlock<C, V> IfThen(Func<C, V, bool> condition, IBlock<C, V> doThis, IBlock<C, V> orThis)
+    public BranchBlock<C, V> IfThen(Func<C, V, bool> condition, IBlock<C, V> doThis, IBlock<C, V> elseThis)
         => Switch(context => context.Value.Match(
                 x => context.IsFlipped && condition(context, x.Value),
-                x => condition(context, x)) ? doThis : orThis);
+                x => condition(context, x)) ? doThis : elseThis);
 
     /// <summary>
     /// Asynchronously evaluates a condition and branches accordingly.
     /// </summary>
-    public BranchBlock<C, V> IfThen(Func<C, ValueTask<bool>> condition, IBlock<C, V> doThis, IBlock<C, V> orThis)
+    public BranchBlock<C, V> IfThen(Func<C, ValueTask<bool>> condition, IBlock<C, V> doThis, IBlock<C, V> elseThis)
         => Switch(async context => await context.Value.MatchAsync(
                 _ => context.IsFlipped ? condition(context) : ValueTask.FromResult(false),
-                _ => condition(context)) ? doThis : orThis);
+                _ => condition(context)) ? doThis : elseThis);
 
     /// <summary>
     /// Asynchronously evaluates a value-based condition and branches accordingly.
     /// </summary>
-    public BranchBlock<C, V> IfThen(Func<C, V, ValueTask<bool>> condition, IBlock<C, V> doThis, IBlock<C, V> orThis)
+    public BranchBlock<C, V> IfThen(Func<C, V, ValueTask<bool>> condition, IBlock<C, V> doThis, IBlock<C, V> elseThis)
         => Switch(async context => await context.Value.MatchAsync(
                 x => context.IsFlipped ? condition(context, x.Value) : ValueTask.FromResult(false),
-                x => condition(context, x)) ? doThis : orThis);
+                x => condition(context, x)) ? doThis : elseThis);
 
     #endregion
 
