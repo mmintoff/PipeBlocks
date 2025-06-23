@@ -2,7 +2,9 @@
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
-namespace MM.PipeBlocks.Blocks;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace MM.PipeBlocks;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// Represents a branching block that determines the next block to execute based on the current context and value.
 /// </summary>

@@ -1,7 +1,9 @@
 ﻿using MM.PipeBlocks.Abstractions;
 using System.Runtime.CompilerServices;
 
-namespace MM.PipeBlocks.Blocks;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace MM.PipeBlocks;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// A synchronous block that executes a function or action with optional access to the context's value.
 /// </summary>

@@ -1,4 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
 
 namespace FailureState;
 public class ThirdBlock : CodeBlock<MyContextType, MyValueType>

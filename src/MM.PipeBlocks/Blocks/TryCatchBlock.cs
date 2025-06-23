@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
 
-namespace MM.PipeBlocks.Blocks;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace MM.PipeBlocks;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// Represents a block that wraps execution in try-catch-finally semantics, supporting both synchronous and asynchronous execution.
 /// </summary>

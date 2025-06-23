@@ -1,4 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
 
 namespace Loop;
 public class AnimationBlock : AsyncCodeBlock<MyContextType, MyValueType>

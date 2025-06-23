@@ -4,7 +4,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Tester;
 using BenchmarkDotNet.Running;
-using MM.PipeBlocks.Blocks;
 using MM.PipeBlocks.Extensions;
 
 //BenchmarkRunner.Run<PipelineBenchmark>();

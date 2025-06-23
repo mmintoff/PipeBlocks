@@ -1,4 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
 
 namespace Reusable;
 public class GenericCodeBlock : CodeBlock<ICustomContext, ICustomValue>

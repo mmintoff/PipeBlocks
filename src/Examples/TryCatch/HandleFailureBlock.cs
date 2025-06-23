@@ -1,4 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
 
 namespace TryCatch;
 public class HandleFailureBlock : CodeBlock<MyContextType, MyValueType>

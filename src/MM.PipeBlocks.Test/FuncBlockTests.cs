@@ -1,6 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
-
-namespace MM.PipeBlocks.Test;
+﻿namespace MM.PipeBlocks.Test;
 public class FuncBlockTests
 {
     [Fact]

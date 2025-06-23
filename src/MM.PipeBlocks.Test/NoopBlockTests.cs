@@ -1,11 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace MM.PipeBlocks.Test;
+﻿namespace MM.PipeBlocks.Test;
 public class NoopBlockTests
 {
     [Fact]

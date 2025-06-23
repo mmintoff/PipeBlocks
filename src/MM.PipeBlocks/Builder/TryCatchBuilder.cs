@@ -1,5 +1,4 @@
 ﻿using MM.PipeBlocks.Abstractions;
-using MM.PipeBlocks.Blocks;
 
 namespace MM.PipeBlocks;
 /// <summary>
@@ -11,12 +10,12 @@ public partial class BlockBuilder<C, V>
     #region TryCatch
 
     /// <summary>
-    /// Wraps the given <paramref name="tryBlock"/> in a try-catch structure, using <paramref name="catchBlock"/> to handle exceptions.
+    /// Wraps the given <paramref name="tryThis"/> in a try-catch structure, using <paramref name="elseThis"/> to handle exceptions.
     /// </summary>
-    /// <param name="tryBlock">The block to execute in the try section.</param>
-    /// <param name="catchBlock">The block to execute if an exception is thrown.</param>
-    public TryCatchBlock<C, V> TryCatch(IBlock<C, V> tryBlock, IBlock<C, V> catchBlock)
-        => new(CreateLogger<TryCatchBlock<C, V>>(), tryBlock, catchBlock, null);
+    /// <param name="tryThis">The block to execute in the try section.</param>
+    /// <param name="elseThis">The block to execute if an exception is thrown.</param>
+    public TryCatchBlock<C, V> TryCatch(IBlock<C, V> tryThis, IBlock<C, V> elseThis)
+        => new(CreateLogger<TryCatchBlock<C, V>>(), tryThis, elseThis, null);
 
     /// <summary>
     /// Wraps the specified generic blocks in a try-catch structure.
@@ -33,12 +32,12 @@ public partial class BlockBuilder<C, V>
     #region TryFinally
 
     /// <summary>
-    /// Wraps the given <paramref name="tryBlock"/> in a try-finally structure, ensuring <paramref name="finallyBlock"/> is always executed.
+    /// Wraps the given <paramref name="tryThis"/> in a try-finally structure, ensuring <paramref name="finallyThis"/> is always executed.
     /// </summary>
-    /// <param name="tryBlock">The block to execute in the try section.</param>
-    /// <param name="finallyBlock">The block to execute in the finally section.</param>
-    public TryCatchBlock<C, V> TryFinally(IBlock<C, V> tryBlock, IBlock<C, V> finallyBlock)
-        => new(CreateLogger<TryCatchBlock<C, V>>(), tryBlock, null, finallyBlock);
+    /// <param name="tryThis">The block to execute in the try section.</param>
+    /// <param name="finallyThis">The block to execute in the finally section.</param>
+    public TryCatchBlock<C, V> TryFinally(IBlock<C, V> tryThis, IBlock<C, V> finallyThis)
+        => new(CreateLogger<TryCatchBlock<C, V>>(), tryThis, null, finallyThis);
 
     /// <summary>
     /// Wraps the specified generic blocks in a try-finally structure.
@@ -57,11 +56,10 @@ public partial class BlockBuilder<C, V>
     /// <summary>
     /// Wraps the given blocks in a full try-catch-finally structure.
     /// </summary>
-    /// <param name="tryBlock">The block to execute in the try section.</param>
-    /// <param name="catchBlock">The block to execute in the catch section.</param>
-    /// <param name="finallyBlock">The block to execute in the finally section.</param>
-    public TryCatchBlock<C, V> TryCatchFinally(IBlock<C, V> tryBlock, IBlock<C, V> catchBlock, IBlock<C, V> finallyBlock)
-        => new(CreateLogger<TryCatchBlock<C, V>>(), tryBlock, catchBlock, finallyBlock);
+    /// <param name="tryThis">The block to execute in the try section.</param>
+    /// <param name="elseThis">The block to execute in the catch section.</param>
+    /// <param name="finallyThis">The block to execute in the finally section.</param>
+    public TryCatchBlock<C, V> TryCatchFinally(IBlock<C, V> tryThis, IBlock<C, V> elseThis, IBlock<C, V> finallyThis) => new(CreateLogger<TryCatchBlock<C, V>>(), tryThis, elseThis, finallyThis);
 
     /// <summary>
     /// Wraps the specified generic blocks in a full try-catch-finally structure.

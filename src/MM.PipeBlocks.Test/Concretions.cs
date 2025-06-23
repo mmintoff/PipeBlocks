@@ -1,5 +1,4 @@
 ﻿using MM.PipeBlocks.Abstractions;
-using MM.PipeBlocks.Blocks;
 
 namespace MM.PipeBlocks.Test;
 public class MyValue

@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
+
 namespace Branch;
 public class TanzaniaTaxRateBlock : CodeBlock<BettingContext, Bet>
 {

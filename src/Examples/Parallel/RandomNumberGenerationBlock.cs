@@ -1,4 +1,4 @@
-﻿using MM.PipeBlocks.Blocks;
+﻿using MM.PipeBlocks;
 
 namespace Parallel;
 public class RandomNumberGenerationBlock : CodeBlock<MyContextType, MyValueType>

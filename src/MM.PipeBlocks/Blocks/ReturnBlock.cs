@@ -3,7 +3,9 @@ using MM.PipeBlocks.Abstractions;
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
-namespace MM.PipeBlocks.Blocks;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+namespace MM.PipeBlocks;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// A block that marks the context as finished and optionally transforms it before returning.
 /// Supports both synchronous and asynchronous execution logic.

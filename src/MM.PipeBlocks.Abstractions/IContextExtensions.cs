@@ -14,4 +14,16 @@ public static class IContextExtensions
     {
         context.SignalBreak();
     }
+
+    public static IContext<V> SignalBreakAndReturn<V>(this IContext<V> context, IFailureState<V> failureState)
+    {
+        context.SignalBreak(failureState);
+        return context;
+    }
+
+    public static IContext<V> SignalBreakAndReturn<V>(this IContext<V> context)
+    {
+        context.SignalBreak();
+        return context;
+    }
 }
