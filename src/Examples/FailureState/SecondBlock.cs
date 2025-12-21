@@ -1,18 +1,20 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace FailureState;
-public class SecondBlock : CodeBlock<MyContextType, MyValueType>
+public class SecondBlock : CodeBlock<MyValueType>
 {
-    protected override MyContextType Execute(MyContextType context, MyValueType value)
+    protected override Parameter<MyValueType> Execute(Parameter<MyValueType> parameter, MyValueType value)
     {
         Console.WriteLine($"Executing {nameof(SecondBlock)}");
         value.Counter++;
 
-        context.SignalBreak(new DefaultFailureState<MyValueType>(value)
+        parameter.SignalBreak(new DefaultFailureState<MyValueType>(value)
         {
-            CorrelationId = context.CorrelationId,
+            CorrelationId = Context.CorrelationId,
             FailureReason = "Arbitrarily failing the pipe"
         });
-        return context;
+
+        return parameter;
     }
 }

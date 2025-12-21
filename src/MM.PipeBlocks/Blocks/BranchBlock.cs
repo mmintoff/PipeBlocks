@@ -1,4 +1,5 @@
 ﻿using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Internal;
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
@@ -10,58 +11,35 @@ namespace MM.PipeBlocks;
 /// </summary>
 /// <typeparam name="C">The context type, implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public sealed class BranchBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
-    private readonly Func<C, IBlock<C, V>>? _syncContextFunc;
-    private readonly Func<C, V, IBlock<C, V>>? _syncContextValueFunc;
-    private readonly Func<C, ValueTask<IBlock<C, V>>>? _asyncContextFunc;
-    private readonly Func<C, V, ValueTask<IBlock<C, V>>>? _asyncContextValueFunc;
+    private readonly Func<Parameter<V>, IBlock<V>>? _syncContextFunc;
+    private readonly Func<Parameter<V>, ValueTask<IBlock<V>>>? _asyncContextFunc;
 
     private readonly ExecutionStrategy _executionStrategy;
 
     private enum ExecutionStrategy : byte
     {
-        SyncContext,
-        SyncContextValue,
-        AsyncContext,
-        AsyncContextValue
+        Sync,
+        Async,
     }
 
     /// <summary>
     /// Initializes a new instance using a synchronous function that takes the context.
     /// </summary>
-    public BranchBlock(Func<C, IBlock<C, V>> nextBlockFunc)
+    public BranchBlock(Func<Parameter<V>, IBlock<V>> nextBlockFunc)
     {
         _syncContextFunc = nextBlockFunc ?? throw new ArgumentNullException(nameof(nextBlockFunc));
-        _executionStrategy = ExecutionStrategy.SyncContext;
-    }
-
-    /// <summary>
-    /// Initializes a new instance using a synchronous function that takes the context and a value.
-    /// </summary>
-    public BranchBlock(Func<C, V, IBlock<C, V>> nextBlockFunc)
-    {
-        _syncContextValueFunc = nextBlockFunc ?? throw new ArgumentNullException(nameof(nextBlockFunc));
-        _executionStrategy = ExecutionStrategy.SyncContextValue;
+        _executionStrategy = ExecutionStrategy.Sync;
     }
 
     /// <summary>
     /// Initializes a new instance using an asynchronous function that takes the context.
     /// </summary>
-    public BranchBlock(Func<C, ValueTask<IBlock<C, V>>> nextBlockFunc)
+    public BranchBlock(Func<Parameter<V>, ValueTask<IBlock<V>>> nextBlockFunc)
     {
         _asyncContextFunc = nextBlockFunc ?? throw new ArgumentNullException(nameof(nextBlockFunc));
-        _executionStrategy = ExecutionStrategy.AsyncContext;
-    }
-
-    /// <summary>
-    /// Initializes a new instance using an asynchronous function that takes the context and a value.
-    /// </summary>
-    public BranchBlock(Func<C, V, ValueTask<IBlock<C, V>>> nextBlockFunc)
-    {
-        _asyncContextValueFunc = nextBlockFunc ?? throw new ArgumentNullException(nameof(nextBlockFunc));
-        _executionStrategy = ExecutionStrategy.AsyncContextValue;
+        _executionStrategy = ExecutionStrategy.Async;
     }
 
     /// <summary>
@@ -69,26 +47,24 @@ public sealed class BranchBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context used to determine and invoke the next block.</param>
     /// <returns>The updated context after executing the determined block.</returns>
-    public C Execute(C context)
+    public Parameter<V> Execute(Parameter<V> value)
     {
-        return context.Value.Match(
-            x => context.IsFlipped ? ExecuteWithValue(context, x.Value) : context,
-            x => ExecuteWithValue(context, x));
+        return value.Match(
+            x => Context.IsFlipped ? ExecuteWithValue(x.Value) : value,
+            x => ExecuteWithValue(x));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private C ExecuteWithValue(C context, V value)
+    private Parameter<V> ExecuteWithValue(Parameter<V> value)
     {
         var nextBlock = _executionStrategy switch
         {
-            ExecutionStrategy.SyncContext => _syncContextFunc!(context),
-            ExecutionStrategy.SyncContextValue => _syncContextValueFunc!(context, value),
-            ExecutionStrategy.AsyncContext => GetBlockFromAsync(_asyncContextFunc!(context)),
-            ExecutionStrategy.AsyncContextValue => GetBlockFromAsync(_asyncContextValueFunc!(context, value)),
+            ExecutionStrategy.Sync => _syncContextFunc!(value),
+            ExecutionStrategy.Async => GetBlockFromAsync(_asyncContextFunc!(value)),
             _ => throw new InvalidOperationException("Invalid execution strategy")
         };
 
-        return BlockExecutor.ExecuteSync(nextBlock, context);
+        return BlockExecutor.ExecuteSync(nextBlock, value);
     }
 
     /// <summary>
@@ -96,29 +72,27 @@ public sealed class BranchBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context used to determine and invoke the next block.</param>
     /// <returns>A <see cref="ValueTask{C}"/> representing the updated context.</returns>
-    public ValueTask<C> ExecuteAsync(C context)
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        return context.Value.Match(
-            x => context.IsFlipped ? ExecuteWithValueAsync(context, x.Value) : new ValueTask<C>(context),
-            x => ExecuteWithValueAsync(context, x));
+        return value.Match(
+            x => Context.IsFlipped ? ExecuteWithValueAsync(x.Value) : new ValueTask<Parameter<V>>(value),
+            x => ExecuteWithValueAsync(x));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<C> ExecuteWithValueAsync(C context, V value)
+    private async ValueTask<Parameter<V>> ExecuteWithValueAsync(Parameter<V> value)
     {
         var nextBlock = _executionStrategy switch
         {
-            ExecutionStrategy.SyncContext => _syncContextFunc!(context),
-            ExecutionStrategy.SyncContextValue => _syncContextValueFunc!(context, value),
-            ExecutionStrategy.AsyncContext => await _asyncContextFunc!(context).ConfigureAwait(false),
-            ExecutionStrategy.AsyncContextValue => await _asyncContextValueFunc!(context, value).ConfigureAwait(false),
+            ExecutionStrategy.Sync => _syncContextFunc!(value),
+            ExecutionStrategy.Async => await _asyncContextFunc!(value).ConfigureAwait(false),
             _ => throw new InvalidOperationException("Invalid execution strategy")
         };
 
-        return await BlockExecutor.ExecuteAsync(nextBlock, context).ConfigureAwait(false);
+        return await BlockExecutor.ExecuteAsync(nextBlock, value).ConfigureAwait(false);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IBlock<C, V> GetBlockFromAsync(ValueTask<IBlock<C, V>> task)
+    private static IBlock<V> GetBlockFromAsync(ValueTask<IBlock<V>> task)
         => task.IsCompleted ? task.Result : AsyncContext.Run(task.AsTask);
 }

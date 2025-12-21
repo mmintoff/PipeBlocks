@@ -4,8 +4,7 @@
 /// </summary>
 /// <typeparam name="C">The type of the context that the block operates on.</typeparam>
 /// <typeparam name="V">The type of the value in the context.</typeparam>
-public interface IBlock<C, V>
-    where C : IContext<V>
+public interface IBlock<V>
 { }
 
 /// <summary>
@@ -13,15 +12,14 @@ public interface IBlock<C, V>
 /// </summary>
 /// <typeparam name="C">The type of the context that the block operates on.</typeparam>
 /// <typeparam name="V">The type of the value in the context.</typeparam>
-public interface ISyncBlock<C, V> : IBlock<C, V>
-    where C : IContext<V>
+public interface ISyncBlock<V> : IBlock<V>
 {
     /// <summary>
     /// Executes the block synchronously with the given context.
     /// </summary>
     /// <param name="context">The context on which the block operates.</param>
     /// <returns>The updated context after execution of the block.</returns>
-    C Execute(C context);
+    Parameter<V> Execute(Parameter<V> value);
 }
 
 /// <summary>
@@ -29,13 +27,12 @@ public interface ISyncBlock<C, V> : IBlock<C, V>
 /// </summary>
 /// <typeparam name="C">The type of the context that the block operates on.</typeparam>
 /// <typeparam name="V">The type of the value in the context.</typeparam>
-public interface IAsyncBlock<C, V> : IBlock<C, V>
-    where C : IContext<V>
+public interface IAsyncBlock<V> : IBlock<V>
 {
     /// <summary>
     /// Executes the block asynchronously with the given context.
     /// </summary>
     /// <param name="context">The context on which the block operates.</param>
     /// <returns>A <see cref="ValueTask{C}"/> representing the asynchronous operation, containing the updated context after execution.</returns>
-    ValueTask<C> ExecuteAsync(C context);
+    ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value);
 }

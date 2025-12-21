@@ -1,12 +1,14 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
+using System;
 
 namespace Branch;
-public class NigerianTaxRateBlock : CodeBlock<BettingContext, Bet>
+public class NigerianTaxRateBlock : CodeBlock<Bet>
 {
-    protected override BettingContext Execute(BettingContext context, Bet value)
+    protected override Parameter<Bet> Execute(Parameter<Bet> parameter, Bet value)
     {
         // 20% Tax Rate
         value.NetAmount = value.GrossAmount * 0.8M;
-        return context;
+        return value;
     }
 }

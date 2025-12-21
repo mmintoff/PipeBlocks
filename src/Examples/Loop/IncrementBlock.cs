@@ -1,11 +1,13 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace Loop;
-public class IncrementBlock : CodeBlock<MyContextType, MyValueType>
+public class IncrementBlock : CodeBlock<MyValueType>
 {
-    protected override MyContextType Execute(MyContextType context, MyValueType value)
+    protected override Parameter<MyValueType> Execute(Parameter<MyValueType> parameter, MyValueType value)
     {
-        context.Counter++;
-        return context;
+        var context = Context.Get<int>("Counter");
+        counter++;
+        return parameter;
     }
 }

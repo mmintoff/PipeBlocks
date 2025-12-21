@@ -6,11 +6,10 @@ namespace MM.PipeBlocks.Extensions;
 /// </summary>
 /// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type associated with the context.</typeparam>
-public sealed class LoopBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+public sealed class LoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
-    private readonly IBlock<C, V> _block;
-    private readonly Func<C, bool> _evaluator;
+    private readonly IBlock<V> _block;
+    private readonly Func<Parameter<V>, bool> _evaluator;
     private readonly LoopStyle _loopStyle;
 
     /// <summary>
@@ -19,7 +18,7 @@ public sealed class LoopBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
     /// <param name="loopStyle">The style of the loop, either "Do" or "While".</param>
-    public LoopBlock(IBlock<C, V> block, Func<C, bool> evaluator, LoopStyle loopStyle)
+    public LoopBlock(IBlock<V> block, Func<Parameter<V>, bool> evaluator, LoopStyle loopStyle)
         => (_block, _evaluator, _loopStyle)
         = (block, evaluator, loopStyle);
 
@@ -28,14 +27,14 @@ public sealed class LoopBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context to execute.</param>
     /// <returns>The modified context after loop execution.</returns>
-    public C Execute(C context)
+    public Parameter<V> Execute(Parameter<V> value)
     {
         if (_loopStyle == LoopStyle.Do)
-            context = BlockExecutor.ExecuteSync(_block, context);
-        while (_evaluator(context))
-            context = BlockExecutor.ExecuteSync(_block, context);
+            value = BlockExecutor.ExecuteSync(_block, value);
+        while (_evaluator(value))
+            value = BlockExecutor.ExecuteSync(_block, value);
 
-        return context;
+        return value;
     }
 
     /// <summary>
@@ -43,14 +42,14 @@ public sealed class LoopBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context to execute.</param>
     /// <returns>A task that represents the asynchronous operation, with the modified context after loop execution.</returns>
-    public async ValueTask<C> ExecuteAsync(C context)
+    public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         if (_loopStyle == LoopStyle.Do)
-            context = await BlockExecutor.ExecuteAsync(_block, context);
-        while (_evaluator(context))
-            context = await BlockExecutor.ExecuteAsync(_block, context);
+            value = await BlockExecutor.ExecuteAsync(_block, value);
+        while (_evaluator(value))
+            value = await BlockExecutor.ExecuteAsync(_block, value);
 
-        return context;
+        return value;
     }
 }
 
@@ -75,8 +74,7 @@ public enum LoopStyle
 /// </summary>
 /// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type associated with the context.</typeparam>
-public class LoopBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
-    where C : IContext<V>
+public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
 {
     /// <summary>
     /// Creates a "Do" loop block.
@@ -84,7 +82,7 @@ public class LoopBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
     /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "Do" loop.</returns>
-    public LoopBlock<C, V> Do(IBlock<C, V> block, Func<C, bool> evaluator)
+    public LoopBlock<V> Do(IBlock<V> block, Func<Parameter<V>, bool> evaluator)
         => new(block, evaluator, LoopStyle.Do);
 
     /// <summary>
@@ -93,8 +91,8 @@ public class LoopBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
     /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "Do" loop.</returns>
-    public LoopBlock<C, V> Do<X>(Func<C, bool> evaluator)
-        where X : IBlock<C, V>
+    public LoopBlock<V> Do<X>(Func<Parameter<V>, bool> evaluator)
+        where X : IBlock<V>
         => new(blockBuilder.ResolveInstance<X>(), evaluator, LoopStyle.Do);
 
     /// <summary>
@@ -103,7 +101,7 @@ public class LoopBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
     /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "While" loop.</returns>
-    public LoopBlock<C, V> While(IBlock<C, V> block, Func<C, bool> evaluator)
+    public LoopBlock<V> While(IBlock<V> block, Func<Parameter<V>, bool> evaluator)
         => new(block, evaluator, LoopStyle.While);
 
     /// <summary>
@@ -112,8 +110,8 @@ public class LoopBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
     /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "While" loop.</returns>
-    public LoopBlock<C, V> While<X>(Func<C, bool> evaluator)
-        where X : IBlock<C, V>
+    public LoopBlock<V> While<X>(Func<Parameter<V>, bool> evaluator)
+        where X : IBlock<V>
         => new(blockBuilder.ResolveInstance<X>(), evaluator, LoopStyle.While);
 }
 
@@ -129,7 +127,6 @@ public static partial class BuilderExtensions
     /// <typeparam name="V">The value type associated with the context.</typeparam>
     /// <param name="builder">The <see cref="BlockBuilder{C, V}"/> instance used to resolve blocks.</param>
     /// <returns>A new <see cref="LoopBuilder{C, V}"/> instance.</returns>
-    public static LoopBuilder<C, V> Loop<C, V>(this BlockBuilder<C, V> builder)
-        where C : IContext<V>
+    public static LoopBuilder<V> Loop<V>(this BlockBuilder<V> builder)
         => new(builder);
 }

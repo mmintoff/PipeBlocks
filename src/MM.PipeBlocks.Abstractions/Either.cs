@@ -5,7 +5,7 @@
 /// </summary>
 /// <typeparam name="TL">The type of the Left value.</typeparam>
 /// <typeparam name="TR">The type of the Right value.</typeparam>
-public class Either<TL, TR>
+public class Either<TL, TR> : IEither<TL, TR>
 {
     private readonly TL? _left;
     private readonly TR? _right;

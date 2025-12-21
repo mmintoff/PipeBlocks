@@ -1,6 +1,7 @@
 ﻿using MM.PipeBlocks.Abstractions;
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
+using static MM.PipeBlocks.Abstractions.Context;
 
 namespace MM.PipeBlocks;
 /// <summary>
@@ -17,13 +18,12 @@ public static class BlockExecutor
     /// <param name="block">The block to execute.</param>
     /// <param name="context">The current execution context.</param>
     /// <returns>The updated execution context.</returns>
-    public static C ExecuteSync<C, V>(IBlock<C, V> block, C context)
-        where C : IContext<V>
+    public static Parameter<V> ExecuteSync<V>(IBlock<V> block, Parameter<V> value)
         => block switch
         {
-            ISyncBlock<C, V> syncBlock => syncBlock.Execute(context),
-            IAsyncBlock<C, V> asyncBlock => ExecuteValueTaskSynchronously<C, V>(asyncBlock.ExecuteAsync(context)),
-            _ => context
+            ISyncBlock<V> syncBlock => syncBlock.Execute(value),
+            IAsyncBlock<V> asyncBlock => ExecuteValueTaskSynchronously(asyncBlock.ExecuteAsync(value)),
+            _ => value
         };
 
     /// <summary>
@@ -35,17 +35,45 @@ public static class BlockExecutor
     /// <param name="block">The block to execute.</param>
     /// <param name="context">The current execution context.</param>
     /// <returns>A task that represents the asynchronous operation, containing the updated execution context.</returns>
-    public static ValueTask<C> ExecuteAsync<C, V>(IBlock<C, V> block, C context)
-        where C : IContext<V>
-        => block switch
+    public static ValueTask<Parameter<V>> ExecuteAsync<V>(IBlock<V> block, Parameter<V> value)
+    {
+        Console.WriteLine($"BlockExecutor.ExecuteAsync - Before - ResultText: {Context.TryGet<string>("ResultText", out var before)}, Value: {before}");
+
+        var result = block switch
         {
-            IAsyncBlock<C, V> asyncBlock => asyncBlock.ExecuteAsync(context),
-            ISyncBlock<C, V> syncBlock => ValueTask.FromResult(syncBlock.Execute(context)),
-            _ => ValueTask.FromResult(context)
+            IAsyncBlock<V> asyncBlock => asyncBlock.ExecuteAsync(value),
+            ISyncBlock<V> syncBlock => ValueTask.FromResult(syncBlock.Execute(value)),
+            _ => ValueTask.FromResult(value)
         };
 
+        Console.WriteLine($"BlockExecutor.ExecuteAsync - After - ResultText: {Context.TryGet<string>("ResultText", out var after)}, Value: {after}");
+
+        return result;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static C ExecuteValueTaskSynchronously<C, V>(ValueTask<C> task)
-        where C: IContext<V>
+    private static Parameter<V> ExecuteValueTaskSynchronously<V>(ValueTask<Parameter<V>> task)
         => task.IsCompleted ? task.Result : AsyncContext.Run(task.AsTask);
+
+    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+    //private static Parameter<V> ExecuteValueTaskSynchronously<V>(ValueTask<Parameter<V>> task)
+    //{
+    //    if (task.IsCompleted)
+    //        return task.Result;
+
+    //    var snapshot = Context.Capture();
+    //    ContextSnapshot? innerSnapshot = null;
+
+    //    var result = AsyncContext.Run(async () =>
+    //    {
+    //        snapshot.Apply();
+    //        var r = await task;
+    //        innerSnapshot = Context.Capture();
+    //        return r;
+    //    });
+
+    //    innerSnapshot?.Apply();
+
+    //    return result;
+    //}
 }

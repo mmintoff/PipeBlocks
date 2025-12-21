@@ -10,28 +10,27 @@ namespace MM.PipeBlocks;
 /// <typeparam name="V">The type of the value in the context.</typeparam>
 /// <param name="resolver">The block resolver used to resolve block instances.</param>
 /// <param name="loggerFactory">The logger factory used to create loggers for blocks.</param>
-public partial class BlockBuilder<C, V>(IBlockResolver<C, V> resolver, ILoggerFactory loggerFactory)
-    where C : IContext<V>
+public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory loggerFactory)
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver and NoopLoggerFactory.
     /// </summary>
     public BlockBuilder()
-        : this(new DefaultBlockResolver<C, V>(), new NoopLoggerFactory()) { }
+        : this(new DefaultBlockResolver<V>(), new NoopLoggerFactory()) { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver.
     /// </summary>
     /// <param name="loggerFactory">The logger factory used to create loggers.</param>
     public BlockBuilder(ILoggerFactory loggerFactory)
-        : this(new DefaultBlockResolver<C, V>(), loggerFactory) { }
+        : this(new DefaultBlockResolver<V>(), loggerFactory) { }
 
     /// <summary>
     /// Creates a new <see cref="PipeBlock{C, V}"/> with the specified name.
     /// </summary>
     /// <param name="pipeName">The name of the pipe.</param>
     /// <returns>A new instance of <see cref="PipeBlock{C, V}"/>.</returns>
-    public PipeBlock<C, V> CreatePipe(string pipeName)
+    public PipeBlock<V> CreatePipe(string pipeName)
         => new(pipeName, this);
 
     /// <summary>
@@ -40,7 +39,7 @@ public partial class BlockBuilder<C, V>(IBlockResolver<C, V> resolver, ILoggerFa
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <returns>An instance of the specified block type.</returns>
     public X ResolveInstance<X>()
-        where X : IBlock<C, V>
+        where X : IBlock<V>
         => resolver.ResolveInstance<X>();
 
     /// <summary>

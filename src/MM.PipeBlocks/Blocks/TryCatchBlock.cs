@@ -9,13 +9,12 @@ namespace MM.PipeBlocks;
 /// </summary>
 /// <typeparam name="C">The type of the context, implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of value associated with the context.</typeparam>
-public class TryCatchBlock<C, V>(
-    ILogger<TryCatchBlock<C, V>> logger,
-    IBlock<C, V> tryBlock,
-    IBlock<C, V>? catchBlock = null,
-    IBlock<C, V>? finallyBlock = null
-) : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+public class TryCatchBlock<V>(
+    ILogger<TryCatchBlock<V>> logger,
+    IBlock<V> tryBlock,
+    IBlock<V>? catchBlock = null,
+    IBlock<V>? finallyBlock = null
+) : ISyncBlock<V>, IAsyncBlock<V>
 {
     /// <summary>
     /// Executes the block synchronously, applying try-catch-finally behavior.
@@ -23,41 +22,41 @@ public class TryCatchBlock<C, V>(
     /// </summary>
     /// <param name="context">The context to execute the block with.</param>
     /// <returns>The updated context after execution.</returns>
-    public C Execute(C context)
+    public Parameter<V> Execute(Parameter<V> value)
     {
         bool shouldFlip = false;
         try
         {
-            context = BlockExecutor.ExecuteSync(tryBlock, context);
-            context.Value.Match(
+            value = BlockExecutor.ExecuteSync(tryBlock, value);
+            value.Match(
                 failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", context.CorrelationId, failure.FailureReason);
-                    FlipExecute(shouldFlip, catchBlock, context);
+                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", Context.CorrelationId, failure.FailureReason);
+                    FlipExecute(shouldFlip, catchBlock, value);
                 },
                 _ => { });
         }
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", context.CorrelationId);
-            FlipExecute(shouldFlip, catchBlock, context);
+            logger.LogError(ex, "Exception occurred executing {CorrelationId}", Context.CorrelationId);
+            FlipExecute(shouldFlip, catchBlock, value);
         }
         finally
         {
-            FlipExecute(shouldFlip, finallyBlock, context);
+            FlipExecute(shouldFlip, finallyBlock, value);
         }
-        return context;
+        return value;
 
         // Executes the given block if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        static void FlipExecute(bool shouldFlip, IBlock<C, V>? block, C context)
+        static void FlipExecute(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
         {
             if (block != null)
             {
-                context.IsFlipped = shouldFlip;
-                _ = BlockExecutor.ExecuteSync(block, context);
-                context.IsFlipped = !shouldFlip;
+                Context.IsFlipped = shouldFlip;
+                _ = BlockExecutor.ExecuteSync(block, value);
+                Context.IsFlipped = !shouldFlip;
             }
         }
     }
@@ -68,41 +67,41 @@ public class TryCatchBlock<C, V>(
     /// </summary>
     /// <param name="context">The context to execute the block with.</param>
     /// <returns>The updated context after asynchronous execution.</returns>
-    public async ValueTask<C> ExecuteAsync(C context)
+    public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         bool shouldFlip = false;
         try
         {
-            context = await BlockExecutor.ExecuteAsync(tryBlock, context);
-            await context.Value.MatchAsync(
+            value = await BlockExecutor.ExecuteAsync(tryBlock, value);
+            await value.MatchAsync(
                 async failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", context.CorrelationId, failure.FailureReason);
-                    await FlipExecuteAsync(shouldFlip, catchBlock, context);
+                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", Context.CorrelationId, failure.FailureReason);
+                    await FlipExecuteAsync(shouldFlip, catchBlock, value);
                 },
                 _ => ValueTask.CompletedTask);
         }
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", context.CorrelationId);
-            await FlipExecuteAsync(shouldFlip, catchBlock, context);
+            logger.LogError(ex, "Exception occurred executing {CorrelationId}", Context.CorrelationId);
+            await FlipExecuteAsync(shouldFlip, catchBlock, value);
         }
         finally
         {
-            await FlipExecuteAsync(shouldFlip, finallyBlock, context);
+            await FlipExecuteAsync(shouldFlip, finallyBlock, value);
         }
-        return context;
+        return value;
 
         // Executes the given block asynchronously if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        static async Task FlipExecuteAsync(bool shouldFlip, IBlock<C, V>? block, C context)
+        static async Task FlipExecuteAsync(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
         {
             if (block != null)
             {
-                context.IsFlipped = shouldFlip;
-                _ = await BlockExecutor.ExecuteAsync(block, context);
-                context.IsFlipped = !shouldFlip;
+                Context.IsFlipped = shouldFlip;
+                _ = await BlockExecutor.ExecuteAsync(block, value);
+                Context.IsFlipped = !shouldFlip;
             }
         }
     }

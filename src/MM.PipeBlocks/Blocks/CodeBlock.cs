@@ -1,15 +1,31 @@
 ﻿using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Internal;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
+
+//public abstract class CodeBlockBase<V>
+//    where V : Either<IFailureState<V>, V>
+//{
+//    public void SignalBreak()
+//    {
+//        Context.IsFinished = true;
+//    }
+
+//    public void SignalBreak(IFailureState<V> failureState)
+//    {
+//        Context.IsFinished = true;
+//        Context.Set("FailureState", failureState);
+//    }
+//}
+
 /// <summary>
 /// Represents a synchronous code block that processes a context, optionally using a value from the context.
 /// </summary>
 /// <typeparam name="C">The context type, implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public abstract class CodeBlock<C, V> : ISyncBlock<C, V>
-    where C : IContext<V>
+public abstract class CodeBlock<V> : ISyncBlock<V>
 {
     /// <summary>
     /// Executes the block with the provided context.
@@ -18,9 +34,9 @@ public abstract class CodeBlock<C, V> : ISyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context for execution.</param>
     /// <returns>The updated context after execution.</returns>
-    public virtual C Execute(C context) => context.Value.Match(
-        x => context.IsFlipped ? Execute(context, x.Value) : context,
-        x => Execute(context, x));
+    public virtual Parameter<V> Execute(Parameter<V> value) => value.Match(
+        x => Context.IsFlipped ? Execute(value, x.Value) : value,
+        x => Execute(value, x));
 
     /// <summary>
     /// Override this method to implement logic using the value within the context.
@@ -28,7 +44,7 @@ public abstract class CodeBlock<C, V> : ISyncBlock<C, V>
     /// <param name="context">The context for execution.</param>
     /// <param name="value">The value extracted from the context.</param>
     /// <returns>The updated context.</returns>
-    protected abstract C Execute(C context, V value);
+    protected abstract Parameter<V> Execute(Parameter<V> parameter, V value);
 }
 
 /// <summary>
@@ -36,8 +52,7 @@ public abstract class CodeBlock<C, V> : ISyncBlock<C, V>
 /// </summary>
 /// <typeparam name="C">The context type, implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public abstract class AsyncCodeBlock<C, V> : IAsyncBlock<C, V>
-    where C : IContext<V>
+public abstract class AsyncCodeBlock<V> : IAsyncBlock<V>
 {
     /// <summary>
     /// Executes the block asynchronously with the provided context.
@@ -46,9 +61,9 @@ public abstract class AsyncCodeBlock<C, V> : IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The context for execution.</param>
     /// <returns>A <see cref="ValueTask{C}"/> representing the asynchronous operation.</returns>
-    public virtual ValueTask<C> ExecuteAsync(C context) => context.Value.Match(
-        x => context.IsFlipped ? ExecuteAsync(context, x.Value) : ValueTask.FromResult(context),
-        x => ExecuteAsync(context, x));
+    public virtual ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
+        x => Context.IsFlipped ? ExecuteAsync(value, x.Value) : ValueTask.FromResult(value),
+        x => ExecuteAsync(value, x));
 
     /// <summary>
     /// Override this method to implement asynchronous logic using the value within the context.
@@ -56,5 +71,5 @@ public abstract class AsyncCodeBlock<C, V> : IAsyncBlock<C, V>
     /// <param name="context">The context for execution.</param>
     /// <param name="value">The value extracted from the context.</param>
     /// <returns>A <see cref="ValueTask{C}"/> representing the result of the asynchronous operation.</returns>
-    protected abstract ValueTask<C> ExecuteAsync(C context, V value);
+    protected abstract ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> parameter, V value);
 }

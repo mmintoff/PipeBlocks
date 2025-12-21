@@ -1,9 +1,9 @@
 ﻿using Branch;
 using MM.PipeBlocks;
 
-var builder = new BlockBuilder<BettingContext, Bet>();
+var builder = new BlockBuilder<Bet>();
 var pipe = builder.CreatePipe("tax pipe")
-            .Then(b => b.Switch((c, v) => v.Country switch
+            .Then(b => b.Switch(v => v.Value.Country switch
             {
                 Country.Nigeria => b.ResolveInstance<NigerianTaxRateBlock>(),
                 Country.Tanzania => b.ResolveInstance<TanzaniaTaxRateBlock>(),
@@ -15,14 +15,14 @@ var pipe = builder.CreatePipe("tax pipe")
 
 foreach (var country in Enum.GetValues<Country>())
 {
-    var result = pipe.Execute(new BettingContext(new Bet
+    var result = pipe.Execute(new Bet
     {
         Country = country,
         GrossAmount = 100M,
         NetAmount = 100M
-    }));
+    });
 
-    result.Value.Match(
+    result.Match(
         failure =>
         {
             Console.ForegroundColor = ConsoleColor.Red;

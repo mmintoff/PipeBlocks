@@ -1,10 +1,9 @@
 ﻿using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Internal;
-internal class DefaultBlockResolver<C, V> : IBlockResolver<C, V>
-    where C : IContext<V>
+internal class DefaultBlockResolver<V> : IBlockResolver<V>
 {
     public X ResolveInstance<X>()
-        where X : IBlock<C, V>
+        where X : IBlock<V>
         => Activator.CreateInstance<X>();
 }

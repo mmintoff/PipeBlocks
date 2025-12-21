@@ -7,21 +7,20 @@ namespace MM.PipeBlocks;
 /// </summary>
 /// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     /// <summary>
     /// The <see cref="BlockBuilder{C, V}"/> used to resolve and create blocks.
     /// </summary>
-    protected readonly BlockBuilder<C, V> Builder;
+    protected readonly BlockBuilder<V> Builder;
 
     /// <summary>
     /// The list of blocks that make up the pipeline.
     /// </summary>
-    protected readonly List<IBlock<C, V>> _blocks = [];
+    protected readonly List<IBlock<V>> _blocks = [];
 
     private readonly string _pipeName;
-    private readonly ILogger<PipeBlock<C, V>> _logger;
+    private readonly ILogger<PipeBlock<V>> _logger;
 
     private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
 
@@ -38,12 +37,21 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="pipeName">The name of the pipe, used for logging.</param>
     /// <param name="blockBuilder">The builder used to resolve additional blocks.</param>
-    public PipeBlock(string pipeName, BlockBuilder<C, V> blockBuilder)
+    public PipeBlock(string pipeName, BlockBuilder<V> blockBuilder)
     {
         _pipeName = pipeName;
         Builder = blockBuilder;
-        _logger = blockBuilder.CreateLogger<PipeBlock<C, V>>();
+        _logger = blockBuilder.CreateLogger<PipeBlock<V>>();
         _logger.LogInformation("Created pipe: '{name}'", _pipeName);
+    }
+
+    public Parameter<V> Execute(Parameter<V> value, Action<ContextBuilder> configureContext)
+    {
+        var builder = new ContextBuilder();
+        configureContext(builder);
+        builder.Apply();
+
+        return Execute(value);
     }
 
     /// <summary>
@@ -51,22 +59,29 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The execution context.</param>
     /// <returns>The updated context after pipeline execution.</returns>
-    public C Execute(C context)
+    public Parameter<V> Execute(Parameter<V> value)
     {
-        s_sync_logExecutingPipe(_logger, _pipeName, context.CorrelationId, null);
+        s_sync_logExecutingPipe(_logger, _pipeName, Context.CorrelationId, null);
         for (int i = 0; i < _blocks.Count; i++)
         {
-            if (IsFinished(context))
+            if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", _pipeName, i, context.CorrelationId);
-                s_sync_logStoppingPipe(_logger, _pipeName, i, context.CorrelationId, null);
+                s_sync_logStoppingPipe(_logger, _pipeName, i, Context.CorrelationId, null);
                 break;
             }
 
-            context = BlockExecutor.ExecuteSync(_blocks[i], context);
+            value = BlockExecutor.ExecuteSync(_blocks[i], value);
         }
-        s_sync_logCompletedPipe(_logger, _pipeName, context.CorrelationId, null);
-        return context;
+        s_sync_logCompletedPipe(_logger, _pipeName, Context.CorrelationId, null);
+        return value;
+    }
+
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<ContextBuilder> configureContext)
+    {
+        var builder = new ContextBuilder();
+        configureContext(builder);
+        builder.Apply();
+        return ExecuteAsync(value);  // Return the task directly, no await
     }
 
     /// <summary>
@@ -74,41 +89,42 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="context">The execution context.</param>
     /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
-    public async ValueTask<C> ExecuteAsync(C context)
+    public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        s_async_logExecutingPipe(_logger, _pipeName, context.CorrelationId, null);
+        s_async_logExecutingPipe(_logger, _pipeName, Context.CorrelationId, null);
         for (int i = 0; i < _blocks.Count; i++)
         {
-            if (IsFinished(context))
+            if (IsFinished(value))
             {
-                s_async_logStoppingPipe(_logger, _pipeName, i, context.CorrelationId, null);
+                s_async_logStoppingPipe(_logger, _pipeName, i, Context.CorrelationId, null);
                 break;
             }
 
-            context = await BlockExecutor.ExecuteAsync(_blocks[i], context);
+            var task = BlockExecutor.ExecuteAsync(_blocks[i], value);
+            value = task.IsCompleted ? task.Result : await task;
         }
-        s_async_logCompletedPipe(_logger, _pipeName, context.CorrelationId, null);
-        return context;
+        s_async_logCompletedPipe(_logger, _pipeName, Context.CorrelationId, null);
+        return value;
     }
 
     /// <summary>
     /// Converts the current <see cref="PipeBlock{C, V}"/> into a synchronous function.
     /// </summary>
     /// <returns>A function that executes the block synchronously.</returns>
-    public PipeBlockDelegate<C, V> ToDelegate() => Execute;
+    public PipeBlockDelegate<V> ToDelegate() => Execute;
 
     /// <summary>
     /// Converts the current <see cref="PipeBlock{C, V}"/> into an asynchronous function.
     /// </summary>
     /// <returns>A function that executes the block asynchronously.</returns>
-    public PipeBlockAsyncDelegate<C, V> ToAsyncDelegate() => ExecuteAsync;
+    public PipeBlockAsyncDelegate<V> ToAsyncDelegate() => ExecuteAsync;
 
     /// <summary>
     /// Adds a block to the pipeline.
     /// </summary>
     /// <param name="block">The block to add.</param>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<C, V> Then(IBlock<C, V> block)
+    public PipeBlock<V> Then(IBlock<V> block)
         => AddBlock(block);
 
     /// <summary>
@@ -116,8 +132,8 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <typeparam name="X">The block type to resolve and add.</typeparam>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<C, V> Then<X>()
-        where X : IBlock<C, V>
+    public PipeBlock<V> Then<X>()
+        where X : IBlock<V>
         => AddBlock(Builder.ResolveInstance<X>());
 
     /// <summary>
@@ -125,7 +141,7 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="func">A function that takes a builder and returns a block.</param>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<C, V> Then(Func<BlockBuilder<C, V>, IBlock<C, V>> func)
+    public PipeBlock<V> Then(Func<BlockBuilder<V>, IBlock<V>> func)
         => AddBlock(func(Builder));
 
     /// <summary>
@@ -138,18 +154,18 @@ public partial class PipeBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
     /// </summary>
     /// <param name="block">The block to add.</param>
     /// <returns>The current instance.</returns>
-    protected PipeBlock<C, V> AddBlock(IBlock<C, V> block)
+    protected PipeBlock<V> AddBlock(IBlock<V> block)
     {
         _blocks.Add(block);
         s_logAddBlock(_logger, block.ToString() ?? "Unknown", _pipeName, null);
         return this;
     }
 
-    private static bool IsFinished(C c) => c.IsFlipped
-        ? !(c.IsFinished || IsFailure(c))
-        : c.IsFinished || IsFailure(c);
+    private static bool IsFinished(Parameter<V> value) => Context.IsFlipped
+        ? !(Context.IsFinished || IsFailure(value))
+        : Context.IsFinished || IsFailure(value);
 
-    private static bool IsFailure(C c) => c.Value.Match(
+    private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,
         _ => false);
 }

@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using MM.PipeBlocks;
 
 var serviceCollection = new ServiceCollection();
-serviceCollection.AddTransient<BlockBuilder<MyContextType, MyValueType>>();
+serviceCollection.AddTransient<BlockBuilder<MyValueType>>();
 serviceCollection.AddLogging(configure =>
 {
     configure.ClearProviders();
@@ -13,15 +13,15 @@ serviceCollection.AddLogging(configure =>
 });
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
-var builder = serviceProvider.GetRequiredService<BlockBuilder<MyContextType, MyValueType>>();
+var builder = serviceProvider.GetRequiredService<BlockBuilder<MyValueType>>();
 var pipe = builder.CreatePipe("failure state example pipe")
                 .Then<FirstBlock>()
                 .Then<SecondBlock>()
                 .Then<ThirdBlock>()
                 ;
 
-var result = pipe.Execute(new MyContextType(new MyValueType()));
-result.Value.Match(
+var result = pipe.Execute(new MyValueType());
+result.Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;
