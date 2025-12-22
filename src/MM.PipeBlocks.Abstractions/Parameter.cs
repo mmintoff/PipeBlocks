@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Numerics;
 
 namespace MM.PipeBlocks.Abstractions;
 
@@ -14,6 +15,7 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
 
     public V Value { get => _either.Match(x => x.Value, x => x); }
     public ConcurrentDictionary<string, object> MetaData => _metaData;
+    public Guid CorrelationId { get => Context.TryGet("CorrelationId", out Guid id) ? id : default; }
 
     public void SetMetaData<T>(string key, T value) => _metaData[key] = value!;
     public T? GetMetaData<T>(string key) =>
@@ -28,6 +30,17 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
         }
         value = default;
         return false;
+    }
+
+    public T IncrementMetaData<T>(string key, T incrementBy)
+        where T : INumber<T>
+    {
+        return (T)_metaData.AddOrUpdate(key, incrementBy!, (k, v) => (T)v + incrementBy);
+    }
+
+    public T IncrementMetaData<T>(string key) where T : INumber<T>
+    {
+        return (T)_metaData.AddOrUpdate(key, T.One!, (k, v) => (T)v + T.One);
     }
 
     public void SignalBreak()

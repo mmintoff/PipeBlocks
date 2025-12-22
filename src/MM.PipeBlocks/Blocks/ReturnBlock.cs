@@ -63,7 +63,7 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     public ReturnBlock(ILogger<ReturnBlock<V>> logger, Func<Parameter<V>, ValueTask<Parameter<V>>> func)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _ = func ?? throw new ArgumentNullException(nameof(func));
+        _asyncFunc = func ?? throw new ArgumentNullException(nameof(func));
         _executionStrategy = ExecutionStrategy.AsyncFunc;
     }
 

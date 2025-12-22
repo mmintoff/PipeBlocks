@@ -1,169 +1,168 @@
-﻿//namespace MM.PipeBlocks.Test;
-//public class CodeBlockTests
-//{
-//    [Fact]
-//    public void Execute_WithFailContext()
-//    {
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(initialValue);
-//        context.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
-//        {
-//            FailureReason = "Initial Failure",
-//            CorrelationId = context.CorrelationId
-//        });
+﻿using MM.PipeBlocks.Abstractions;
 
-//        var block = new ReturnValue_CodeBlock();
-//        var result = block.Execute(context);
+namespace MM.PipeBlocks.Test;
 
-//        Assert.Equal(context.CorrelationId, result.CorrelationId);
-//        result.Value.Match(
-//            f =>
-//            {
-//                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
-//                Assert.Equal(context.CorrelationId, f.CorrelationId);
-//                Assert.Equal("Initial Failure", f.FailureReason);
-//            },
-//            s => Assert.Fail("Expected a failure"));
-//    }
+public class CodeBlockTests
+{
+    [Fact]
+    public void Execute_WithFailContext()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
+        value.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
+        {
+            FailureReason = "Initial Failure"
+        });
 
-//    [Fact]
-//    public void Execute_State()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        var block = new ReturnValue_CodeBlock();
+        var result = block.Execute(value);
 
-//        var block = new ReturnValue_CodeBlock();
+        result.Match(
+            f =>
+            {
+                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
+                Assert.Equal(value.CorrelationId, f.CorrelationId);
+                Assert.Equal("Initial Failure", f.FailureReason);
+            },
+            s => Assert.Fail("Expected a failure"));
+    }
 
-//        var result = block.Execute(context);
+    [Fact]
+    public void Execute_State()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//        Assert.Equal(context.CorrelationId, result.CorrelationId);
+        var block = new ReturnValue_CodeBlock();
 
-//        result.Value.Match(
-//            f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
-//            s => Assert.Equal(value.Identifier, s.Identifier));
-//    }
-    
-//    [Fact]
-//    public void Execute_Fail_State()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        var result = block.Execute(value);
 
-//        var block = new ReturnFailContext_CodeBlock();
+        result.Match(
+            f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
+            s => Assert.Equal(value.Value.Identifier, s.Identifier));
+    }
 
-//        var result = block.Execute(context);
+    [Fact]
+    public void Execute_Fail_State()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//        Assert.Equal(context.CorrelationId, result.CorrelationId);
+        var block = new ReturnFailContext_CodeBlock();
 
-//        result.Value.Match(
-//            f =>
-//            {
-//                Assert.Equal(value.Identifier, f.Value.Identifier);
-//                Assert.Equal(context.CorrelationId, f.CorrelationId);
-//                Assert.Equal("Intentional", f.FailureReason);
-//            },
-//            _ => Assert.Fail("Expected a failure"));
-//    }
+        var result = block.Execute(value);
 
-//    [Fact]
-//    public void Execute_Exception_State()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        Assert.Equal(value.CorrelationId, result.CorrelationId);
 
-//        var block = new Exception_CodeBlock();
+        result.Match(
+            f =>
+            {
+                Assert.Equal(value.Value.Identifier, f.Value.Identifier);
+                Assert.Equal(value.CorrelationId, f.CorrelationId);
+                Assert.Equal("Intentional", f.FailureReason);
+            },
+            _ => Assert.Fail("Expected a failure"));
+    }
 
-//        try
-//        {
-//            var result = block.Execute(context);
-//            Assert.Fail("Expected exception");
-//        }
-//        catch (Exception ex)
-//        {
-//            Assert.Equal("Intentional", ex.Message);
-//        }
-//    }
+    [Fact]
+    public void Execute_Exception_State()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//    [Fact]
-//    public async Task Execute_WithFailContext_Async()
-//    {
-//        // Arrange
-//        var initialValue = new MyValue();
-//        var context = new MyContext(initialValue);
-//        context.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
-//        {
-//            FailureReason = "Initial Failure",
-//            CorrelationId = context.CorrelationId
-//        });
-//        var block = new ReturnValue_AsyncCodeBlock();
+        var block = new Exception_CodeBlock();
 
-//        // Act
-//        var result = await block.ExecuteAsync(context);
+        try
+        {
+            var result = block.Execute(value);
+            Assert.Fail("Expected exception");
+        }
+        catch (Exception ex)
+        {
+            Assert.Equal("Intentional", ex.Message);
+        }
+    }
 
-//        Assert.Equal(context.CorrelationId, result.CorrelationId);
+    [Fact]
+    public async Task Execute_WithFailContext_Async()
+    {
+        // Arrange
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//        // Assert
-//        result.Value.Match(
-//            x =>
-//            {
-//                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
-//                Assert.Equal(context.CorrelationId, x.CorrelationId);
-//                Assert.Equal("Initial Failure", x.FailureReason);
-//            },
-//            x => Assert.Fail("Expected a failure"));
-//    }
+        value.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
+        {
+            FailureReason = "Initial Failure"
+        });
+        var block = new ReturnValue_AsyncCodeBlock();
 
-//    [Fact]
-//    public async Task Execute_State_Async()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        // Act
+        var result = await block.ExecuteAsync(value);
 
-//        var block = new ReturnValue_AsyncCodeBlock();
+        Assert.Equal(value.CorrelationId, result.CorrelationId);
 
-//        var result = await block.ExecuteAsync(context);
+        // Assert
+        result.Match(
+            x =>
+            {
+                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(result.CorrelationId, x.CorrelationId);
+                Assert.Equal("Initial Failure", x.FailureReason);
+            },
+            x => Assert.Fail("Expected a failure"));
+    }
 
-//        result.Value.Match(
-//            x => Assert.Fail(x.FailureReason ?? "Empty FailureReason"),
-//            x => Assert.Equal(value.Identifier, x.Identifier));
-//    }
+    [Fact]
+    public async Task Execute_State_Async()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//    [Fact]
-//    public async Task Execute_Fail_State_Async()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        var block = new ReturnValue_AsyncCodeBlock();
 
-//        var block = new ReturnFailContext_AsyncCodeBlock();
+        var result = await block.ExecuteAsync(value);
 
-//        var result = await block.ExecuteAsync(context);
+        result.Match(
+            x => Assert.Fail(x.FailureReason ?? "Empty FailureReason"),
+            x => Assert.Equal(value.Value.Identifier, x.Identifier));
+    }
 
-//        result.Value.Match(
-//            x =>
-//            {
-//                Assert.Equal(value.Identifier, x.Value.Identifier);
-//                Assert.Equal(context.CorrelationId, x.CorrelationId);
-//                Assert.Equal("Intentional", x.FailureReason);
-//            },
-//            x => Assert.Fail("Expected a failure"));
-//    }
+    [Fact]
+    public async Task Execute_Fail_State_Async()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-//    [Fact]
-//    public async Task Execute_Exception_State_Async()
-//    {
-//        var value = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(value);
+        var block = new ReturnFail_AsyncCodeBlock();
 
-//        var block = new Exception_AsyncCodeBlock();
+        var result = await block.ExecuteAsync(value);
 
-//        try
-//        {
-//            var result = await block.ExecuteAsync(context);
-//            Assert.Fail("Expected exception");
-//        }
-//        catch (Exception ex)
-//        {
-//            Assert.Equal("Intentional", ex.Message);
-//        }
-//    }
-//}
+        result.Match(
+            x =>
+            {
+                Assert.Equal(value.Value.Identifier, x.Value.Identifier);
+                Assert.Equal(value.CorrelationId, x.CorrelationId);
+                Assert.Equal("Intentional", x.FailureReason);
+            },
+            x => Assert.Fail("Expected a failure"));
+    }
+
+    [Fact]
+    public async Task Execute_Exception_State_Async()
+    {
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
+
+        var block = new Exception_AsyncCodeBlock();
+
+        try
+        {
+            var result = await block.ExecuteAsync(value);
+            Assert.Fail("Expected exception");
+        }
+        catch (Exception ex)
+        {
+            Assert.Equal("Intentional", ex.Message);
+        }
+    }
+}

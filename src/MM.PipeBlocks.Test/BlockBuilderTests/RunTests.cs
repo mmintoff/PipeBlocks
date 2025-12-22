@@ -1,327 +1,196 @@
-﻿//using MM.PipeBlocks.Abstractions;
+﻿using MM.PipeBlocks.Abstractions;
 
-//namespace MM.PipeBlocks.Test.BlockBuilderTests;
-//public class RunTests
-//{
-//    private readonly BlockBuilder<MyContext, MyValue> _blockBuilder = new();
+namespace MM.PipeBlocks.Test.BlockBuilderTests;
 
-//    private void AssertIsFuncBlock(IBlock<MyContext, MyValue> block)
-//    {
-//        Assert.IsType<FuncBlock<MyContext, MyValue>>(block);
-//    }
+public class RunTests
+{
+    private readonly BlockBuilder<MyValue> _blockBuilder = new();
 
-//    private void AssertIsAsyncFuncBlock(IBlock<MyContext, MyValue> block)
-//    {
-//        Assert.IsType<AsyncFuncBlock<MyContext, MyValue>>(block);
-//    }
+    private static void AssertIsFuncBlock(IBlock<MyValue> block) => Assert.IsType<FuncBlock<MyValue>>(block);
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public void Run_C_Func_C(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run(c =>
-//        {
-//            c.Counter++;
-//            return c;
-//        });
+    private static void AssertIsAsyncFuncBlock(IBlock<MyValue> block) => Assert.IsType<AsyncFuncBlock<MyValue>>(block);
 
-//        AssertIsFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void Run_V_Func_V(bool isFinished, int expected)
+    {
+        var block = _blockBuilder.Run(v =>
+        {
+            v.Value.Counter++;
+            return v;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsFuncBlock(block);
 
-//        var result = block.Execute(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("Run")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public void Run_CV_Func_C(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run((c, v) =>
-//        {
-//            c.Counter++;
-//            return c;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = pipe.Execute(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, f.Value.Counter),
+            s => Assert.Equal(expected, s.Counter));
+    }
 
-//        AssertIsFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void Run_Action(bool isFinished, int expected)
+    {
+        int counter = 0;
+        var block = _blockBuilder.Run(() =>
+        {
+            counter++;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsFuncBlock(block);
 
-//        var result = block.Execute(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public void Run_Action(bool isFinished, int expected)
-//    {
-//        int counter = 0;
-//        var block = _blockBuilder.Run(() =>
-//        {
-//            counter++;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = pipe.Execute(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, counter),
+            s => Assert.Equal(expected, counter));
+    }
 
-//        AssertIsFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public void Run_V_Action(bool isFinished, int expected)
+    {
+        var block = _blockBuilder.Run(v =>
+        {
+            v.Value.Counter++;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsFuncBlock(block);
 
-//        var result = block.Execute(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, counter),
-//            s => Assert.Equal(expected, counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public void Run_C_Action(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run(c =>
-//        {
-//            c.Counter++;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = pipe.Execute(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, f.Value.Counter),
+            s => Assert.Equal(expected, s.Counter));
+    }
 
-//        AssertIsFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task Run_AsyncFunc_ValueTask(bool isFinished, int expected)
+    {
+        int counter = 0;
+        var block = _blockBuilder.Run(() =>
+        {
+            counter++;
+            return ValueTask.CompletedTask;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsAsyncFuncBlock(block);
 
-//        var result = block.Execute(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public void Run_CV_Action(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run((c, v) =>
-//        {
-//            c.Counter++;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = await pipe.ExecuteAsync(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, counter),
+            s => Assert.Equal(expected, counter));
+    }
 
-//        AssertIsFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task Run_AsyncFunc_Task(bool isFinished, int expected)
+    {
+        int counter = 0;
+        var block = _blockBuilder.Run(() =>
+        {
+            counter++;
+            return Task.CompletedTask;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsAsyncFuncBlock(block);
 
-//        var result = block.Execute(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_AsyncFunc_ValueTask(bool isFinished, int expected)
-//    {
-//        int counter = 0;
-//        var block = _blockBuilder.Run(() =>
-//        {
-//            counter++;
-//            return ValueTask.CompletedTask;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = await pipe.ExecuteAsync(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, counter),
+            s => Assert.Equal(expected, counter));
+    }
 
-//        AssertIsAsyncFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task Run_V_AsyncFunc_Task(bool isFinished, int expected)
+    {
+        int counter = 0;
+        var block = _blockBuilder.Run(async c =>
+        {
+            counter++;
+            await ValueTask.CompletedTask;
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsAsyncFuncBlock(block);
 
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, counter),
-//            s => Assert.Equal(expected, counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_AsyncFunc_Task(bool isFinished, int expected)
-//    {
-//        int counter = 0;
-//        var block = _blockBuilder.Run(() =>
-//        {
-//            counter++;
-//            return Task.CompletedTask;
-//        });
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = await pipe.ExecuteAsync(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, counter),
+            s => Assert.Equal(expected, counter));
+    }
 
-//        AssertIsAsyncFuncBlock(block);
+    [Theory]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    public async Task Run_V_AsyncFunc_ValueTask_C(bool isFinished, int expected)
+    {
+        var block = _blockBuilder.Run(async v =>
+        {
+            v.Value.Counter++;
+            await Task.FromResult(v);
+        });
 
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
+        AssertIsAsyncFuncBlock(block);
 
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, counter),
-//            s => Assert.Equal(expected, counter));
-//    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+            .Then(block)
+            ;
 
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_C_AsyncFunc_Task(bool isFinished, int expected)
-//    {
-//        int counter = 0;
-//        var block = _blockBuilder.Run(async c =>
-//        {
-//            counter++;
-//            await ValueTask.CompletedTask;
-//        });
-
-//        AssertIsAsyncFuncBlock(block);
-
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
-
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, counter),
-//            s => Assert.Equal(expected, counter));
-//    }
-
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_CV_AsyncFunc_Task(bool isFinished, int expected)
-//    {
-//        int counter = 0;
-//        var block = _blockBuilder.Run(async (c, v) =>
-//        {
-//            counter++;
-//            await ValueTask.CompletedTask;
-//        });
-
-//        AssertIsAsyncFuncBlock(block);
-
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
-
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, counter),
-//            s => Assert.Equal(expected, counter));
-//    }
-
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_C_AsyncFunc_ValueTask_C(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run(async c =>
-//        {
-//            c.Counter++;
-//            await Task.FromResult(c);
-//        });
-
-//        AssertIsAsyncFuncBlock(block);
-
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
-
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
-
-//    [Theory]
-//    [InlineData(true, 0)]
-//    [InlineData(false, 1)]
-//    public async Task Run_CV_AsyncFunc_ValueTask_C(bool isFinished, int expected)
-//    {
-//        var block = _blockBuilder.Run(async (c, v) =>
-//        {
-//            c.Counter++;
-//            await Task.FromResult(c);
-//        });
-
-//        AssertIsAsyncFuncBlock(block);
-
-//        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-//        var context = new MyContext(new MyValue())
-//        {
-//            Value = isFinished
-//                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-//                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-//            IsFinished = isFinished
-//        };
-
-//        var result = await block.ExecuteAsync(context);
-//        result.Value.Match(
-//            f => Assert.Equal(expected, context.Counter),
-//            s => Assert.Equal(expected, context.Counter));
-//    }
-//}
+        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        var result = await pipe.ExecuteAsync(initialValue, ctx => ctx
+            .With("IsFinished", isFinished)
+            .With("Counter", 0));
+        result.Match(
+            f => Assert.Equal(expected, f.Value.Counter),
+            s => Assert.Equal(expected, s.Counter));
+    }
+}

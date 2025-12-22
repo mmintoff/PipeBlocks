@@ -31,10 +31,10 @@ public partial class BlockBuilder<V>
     /// A new instance of <see cref="ReturnBlock{C, V}"/> that runs the specified action and returns the modified context.
     /// </returns>
     public ReturnBlock<V> Return(Action<Parameter<V>> doThis)
-        => Return(context =>
+        => Return(value =>
         {
-            doThis(context);
-            return context;
+            doThis(value);
+            return value;
         });
 
     /// <summary>
@@ -55,10 +55,10 @@ public partial class BlockBuilder<V>
     /// A new instance of <see cref="ReturnBlock{C, V}"/> that awaits the specified action and then returns the context.
     /// </returns>
     public ReturnBlock<V> Return(Func<Parameter<V>, ValueTask> doThis)
-        => Return(async context =>
+        => Return(async value =>
         {
-            await doThis(context);
-            return context;
+            await doThis(value);
+            return value;
         });
 
     /// <summary>
