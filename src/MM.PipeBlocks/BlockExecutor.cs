@@ -37,16 +37,12 @@ public static class BlockExecutor
     /// <returns>A task that represents the asynchronous operation, containing the updated execution context.</returns>
     public static ValueTask<Parameter<V>> ExecuteAsync<V>(IBlock<V> block, Parameter<V> value)
     {
-        Console.WriteLine($"BlockExecutor.ExecuteAsync - Before - ResultText: {Context.TryGet<string>("ResultText", out var before)}, Value: {before}");
-
         var result = block switch
         {
             IAsyncBlock<V> asyncBlock => asyncBlock.ExecuteAsync(value),
             ISyncBlock<V> syncBlock => ValueTask.FromResult(syncBlock.Execute(value)),
             _ => ValueTask.FromResult(value)
         };
-
-        Console.WriteLine($"BlockExecutor.ExecuteAsync - After - ResultText: {Context.TryGet<string>("ResultText", out var after)}, Value: {after}");
 
         return result;
     }

@@ -7,23 +7,6 @@ public class MyValue
     public int Counter { get; set; }
 }
 
-//public class MyContext(MyValue value) : IContext<MyValue>
-//{
-//    public Guid CorrelationId { get; set; } = Guid.NewGuid();
-//    public bool IsFinished { get; set; }
-//    public bool IsFlipped { get; set; }
-//    public Either<IFailureState<MyValue>, MyValue> Value { get; set; } = value;
-
-//    public int Step { get; set; }
-//    public int Counter { get; set; }
-//    public bool ExecutedCatch { get; set; }
-//    public bool ExecutedFinally { get; set; }
-//    public Guid SniffedId { get; set; }
-
-//    public bool Condition { get; set; }
-//    public string ResultText { get; set; }
-//}
-
 public class IncrementValue_CodeBlock(int i) : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)

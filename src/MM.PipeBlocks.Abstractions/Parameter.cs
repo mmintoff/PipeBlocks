@@ -8,14 +8,19 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
     private Either<IFailureState<V>, V> _either;
     private readonly ConcurrentDictionary<string, object> _metaData = new();
 
-    public Parameter(IFailureState<V> left) => _either = new(left);
-    public Parameter(V right) => _either = new(right);
+    public Parameter(IFailureState<V> left) : this() => _either = new(left);
+    public Parameter(V right) : this() => _either = new(right);
 
     public static implicit operator Parameter<V>(V right) => new(right);
 
     public V Value { get => _either.Match(x => x.Value, x => x); }
     public ConcurrentDictionary<string, object> MetaData => _metaData;
-    public Guid CorrelationId { get => Context.TryGet("CorrelationId", out Guid id) ? id : default; }
+    public Guid CorrelationId { get => Context.CorrelationId; }
+
+    public Parameter()
+    {
+        _ = Context.CorrelationId; // Initialize CorrelationId
+    }
 
     public void SetMetaData<T>(string key, T value) => _metaData[key] = value!;
     public T? GetMetaData<T>(string key) =>
