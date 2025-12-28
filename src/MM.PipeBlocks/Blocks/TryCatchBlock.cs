@@ -32,32 +32,34 @@ public class TryCatchBlock<V>(
                 failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", Context.CorrelationId, failure.FailureReason);
-                    FlipExecute(shouldFlip, catchBlock, value);
+                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", value.Context.CorrelationId, failure.FailureReason);
+                    value = FlipExecute(shouldFlip, catchBlock, value);
                 },
                 _ => { });
         }
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", Context.CorrelationId);
-            FlipExecute(shouldFlip, catchBlock, value);
+            logger.LogError(ex, "Exception occurred executing {CorrelationId}", value.Context.CorrelationId);
+            value = FlipExecute(shouldFlip, catchBlock, value);
         }
         finally
         {
-            FlipExecute(shouldFlip, finallyBlock, value);
+            value = FlipExecute(shouldFlip, finallyBlock, value);
         }
         return value;
 
         // Executes the given block if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        static void FlipExecute(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
+        static Parameter<V> FlipExecute(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
         {
             if (block != null)
             {
-                Context.IsFlipped = shouldFlip;
-                _ = BlockExecutor.ExecuteSync(block, value);
-                Context.IsFlipped = !shouldFlip;
+                value.Context.IsFlipped = shouldFlip;
+                var result = BlockExecutor.ExecuteSync(block, value);
+                value.Context.IsFlipped = !shouldFlip;
+                return result;
             }
+            return value;
         }
     }
 
@@ -70,6 +72,7 @@ public class TryCatchBlock<V>(
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         bool shouldFlip = false;
+
         try
         {
             value = await BlockExecutor.ExecuteAsync(tryBlock, value);
@@ -77,32 +80,34 @@ public class TryCatchBlock<V>(
                 async failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", Context.CorrelationId, failure.FailureReason);
-                    await FlipExecuteAsync(shouldFlip, catchBlock, value);
+                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", value.Context.CorrelationId, failure.FailureReason);
+                    value = await FlipExecuteAsync(shouldFlip, catchBlock, value);
                 },
                 _ => ValueTask.CompletedTask);
         }
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", Context.CorrelationId);
-            await FlipExecuteAsync(shouldFlip, catchBlock, value);
+            logger.LogError(ex, "Exception occurred executing {CorrelationId}", value.Context.CorrelationId);
+            value = await FlipExecuteAsync(shouldFlip, catchBlock, value);
         }
         finally
         {
-            await FlipExecuteAsync(shouldFlip, finallyBlock, value);
+            value = await FlipExecuteAsync(shouldFlip, finallyBlock, value);
         }
         return value;
 
         // Executes the given block asynchronously if provided and toggles the <c>IsFlipped</c> flag based on <paramref name="shouldFlip"/>.
-        static async Task FlipExecuteAsync(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
+        static async Task<Parameter<V>> FlipExecuteAsync(bool shouldFlip, IBlock<V>? block, Parameter<V> value)
         {
             if (block != null)
             {
-                Context.IsFlipped = shouldFlip;
-                _ = await BlockExecutor.ExecuteAsync(block, value);
-                Context.IsFlipped = !shouldFlip;
+                value.Context.IsFlipped = shouldFlip;
+                var result = await BlockExecutor.ExecuteAsync(block, value);
+                value.Context.IsFlipped = !shouldFlip;
+                return result;
             }
+            return value;
         }
     }
 }

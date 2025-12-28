@@ -45,12 +45,9 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
         _logger.LogInformation("Created pipe: '{name}'", _pipeName);
     }
 
-    public Parameter<V> Execute(Parameter<V> value, Action<ContextBuilder> configureContext)
+    public Parameter<V> Execute(Parameter<V> value, Action<Context> configureContext)
     {
-        var builder = new ContextBuilder();
-        configureContext(builder);
-        builder.Apply();
-
+        configureContext(value.Context);
         return Execute(value);
     }
 
@@ -61,26 +58,24 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>The updated context after pipeline execution.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        s_sync_logExecutingPipe(_logger, _pipeName, Context.CorrelationId, null);
+        s_sync_logExecutingPipe(_logger, _pipeName, value.Context.CorrelationId, null);
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                s_sync_logStoppingPipe(_logger, _pipeName, i, Context.CorrelationId, null);
+                s_sync_logStoppingPipe(_logger, _pipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
             value = BlockExecutor.ExecuteSync(_blocks[i], value);
         }
-        s_sync_logCompletedPipe(_logger, _pipeName, Context.CorrelationId, null);
+        s_sync_logCompletedPipe(_logger, _pipeName, value.Context.CorrelationId, null);
         return value;
     }
 
-    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<ContextBuilder> configureContext)
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context> configureContext)
     {
-        var builder = new ContextBuilder();
-        configureContext(builder);
-        builder.Apply();
+        configureContext(value.Context);
         return ExecuteAsync(value);  // Return the task directly, no await
     }
 
@@ -91,19 +86,19 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        s_async_logExecutingPipe(_logger, _pipeName, Context.CorrelationId, null);
+        s_async_logExecutingPipe(_logger, _pipeName, value.Context.CorrelationId, null);
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                s_async_logStoppingPipe(_logger, _pipeName, i, Context.CorrelationId, null);
+                s_async_logStoppingPipe(_logger, _pipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
             var task = BlockExecutor.ExecuteAsync(_blocks[i], value);
             value = task.IsCompleted ? task.Result : await task;
         }
-        s_async_logCompletedPipe(_logger, _pipeName, Context.CorrelationId, null);
+        s_async_logCompletedPipe(_logger, _pipeName, value.Context.CorrelationId, null);
         return value;
     }
 
@@ -161,9 +156,9 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
         return this;
     }
 
-    private static bool IsFinished(Parameter<V> value) => Context.IsFlipped
-        ? !(Context.IsFinished || IsFailure(value))
-        : Context.IsFinished || IsFailure(value);
+    private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
+        ? !(value.Context.IsFinished || IsFailure(value))
+        : value.Context.IsFinished || IsFailure(value);
 
     private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,

@@ -50,12 +50,12 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     public Parameter<V> Execute(Parameter<V> value)
     {
         return value.Match(
-            x => Context.IsFlipped ? ExecuteWithValue(x.Value) : value,
-            x => ExecuteWithValue(x));
+            x => value.Context.IsFlipped ? ExecuteWithStrategy(value) : value,
+            x => ExecuteWithStrategy(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Parameter<V> ExecuteWithValue(Parameter<V> value)
+    private Parameter<V> ExecuteWithStrategy(Parameter<V> value)
     {
         var nextBlock = _executionStrategy switch
         {
@@ -75,12 +75,12 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         return value.Match(
-            x => Context.IsFlipped ? ExecuteWithValueAsync(x.Value) : new ValueTask<Parameter<V>>(value),
-            x => ExecuteWithValueAsync(x));
+            x => value.Context.IsFlipped ? ExecuteWithStrategyAsync(value) : new ValueTask<Parameter<V>>(value),
+            x => ExecuteWithStrategyAsync(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<Parameter<V>> ExecuteWithValueAsync(Parameter<V> value)
+    private async ValueTask<Parameter<V>> ExecuteWithStrategyAsync(Parameter<V> value)
     {
         var nextBlock = _executionStrategy switch
         {

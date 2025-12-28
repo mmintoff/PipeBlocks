@@ -1,45 +1,24 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿namespace Reusable;
 
-namespace Reusable;
-
-public interface ICustomValue { }
-public interface ICustomContext : IContext<ICustomValue>
+public interface ICustomValue
 {
     string FileName { get; set; }
 }
 
-public class ConcreteValue_001 : ICustomValue { }
-public class ConcreteValue_002 : ICustomValue { }
-
-public class FileDownloadContext(ConcreteValue_001 value) : ICustomContext
+public class FileDownloadValue : ICustomValue
 {
-    public Guid CorrelationId { get; set; } = Guid.NewGuid();
-    public Either<IFailureState<ICustomValue>, ICustomValue> Value { get; set; } = value;
-    public bool IsFinished { get; set; }
-    public bool IsFlipped { get; set; }
-    
     public required string FileName { get; set; }
     public required string SourceUrl { get; set; }
 }
 
-public class FileUploadContext(ConcreteValue_002 value) : ICustomContext
+public class FileUploadValue : ICustomValue
 {
-    public Guid CorrelationId { get; set; } = Guid.NewGuid();
-    public Either<IFailureState<ICustomValue>, ICustomValue> Value { get; set; } = value;
-    public bool IsFinished { get; set; }
-    public bool IsFlipped { get; set; }
-    
     public required string FileName { get; set; }
     public required string DestinationUrl { get; set; }
 }
 
-public class FileCompressionContext(ConcreteValue_001 value) : ICustomContext
+public class FileCompressionValue : ICustomValue
 {
-    public Guid CorrelationId { get; set; } = Guid.NewGuid();
-    public Either<IFailureState<ICustomValue>, ICustomValue> Value { get; set; } = value;
-    public bool IsFinished { get; set; }
-    public bool IsFlipped { get; set; }
-
     public required string FileName { get; set; }
     public required string ArchiveName { get; set; }
 }

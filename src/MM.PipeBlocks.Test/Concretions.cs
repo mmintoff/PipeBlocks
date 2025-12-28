@@ -66,7 +66,7 @@ public class IncrementContextCounter_CodeBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        Context.Increment<int>("Counter");
+        parameter.Context.Increment<int>("Counter");
         return parameter;
     }
 }
@@ -75,7 +75,7 @@ public class IncrementContextCounter_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
     protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        Context.Increment<int>("Counter");
+        parameter.Context.Increment<int>("Counter");
         return ValueTask.FromResult(parameter);
     }
 }
@@ -84,7 +84,7 @@ public class IncrementContextCounterAndFail_CodeBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        Context.Increment<int>("Counter");
+        parameter.Context.Increment<int>("Counter");
         throw new InvalidOperationException();
     }
 }
@@ -93,7 +93,7 @@ public class IncrementContextCounterAndFail_AsyncCodeBlock : AsyncCodeBlock<MyVa
 {
     protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        Context.Increment<int>("Counter");
+        parameter.Context.Increment<int>("Counter");
         throw new InvalidOperationException();
     }
 }
@@ -102,8 +102,8 @@ public class SniffCatchBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ExecutedCatch", true);
-        parameter.SetMetaData("SniffedId", value.Identifier);
+        parameter.Context.Set("ExecutedCatch", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
         return parameter;
     }
 }
@@ -112,8 +112,8 @@ public class SniffFinallyBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ExecutedFinally", true);
-        parameter.SetMetaData("SniffedId", value.Identifier);
+        parameter.Context.Set("ExecutedFinally", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
         return parameter;
     }
 }
@@ -122,8 +122,8 @@ public class SniffCatchAsyncBlock : AsyncCodeBlock<MyValue>
 {
     protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ExecutedCatch", true);
-        parameter.SetMetaData("SniffedId", value.Identifier);
+        parameter.Context.Set("ExecutedCatch", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
         return ValueTask.FromResult(parameter);
     }
 }
@@ -132,8 +132,8 @@ public class SniffFinallyAsyncBlock : AsyncCodeBlock<MyValue>
 {
     protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ExecutedFinally", true);
-        parameter.SetMetaData("SniffedId", value.Identifier);
+        parameter.Context.Set("ExecutedFinally", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
         return ValueTask.FromResult(parameter);
     }
 }
@@ -182,7 +182,7 @@ public class DoThisBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ResultText", "DoThis");
+        parameter.Context.Set("ResultText", "DoThis");
         return parameter;
     }
 }
@@ -191,7 +191,7 @@ public class ElseThisBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        if (Context.GetDictionary<int>()["Counter"] > 1)
+        if (parameter.Context.Get<int>("Counter") > 1)
         {
             parameter.SignalBreak(new DefaultFailureState<MyValue>(value)
             {
@@ -200,7 +200,7 @@ public class ElseThisBlock : CodeBlock<MyValue>
         }
         else
         {
-            parameter.SetMetaData("ResultText", "ElseThis");
+            parameter.Context.Set("ResultText", "ElseThis");
         }
         return parameter;
     }
@@ -210,7 +210,7 @@ public class FailBlock : CodeBlock<MyValue>
 {
     protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        parameter.SetMetaData("ResultText", "Fail");
+        parameter.Context.Set("ResultText", "Fail");
         return parameter;
     }
 }

@@ -3,7 +3,6 @@ using Polly;
 using Polly.Contrib.WaitAndRetry;
 using Polly.Retry;
 using System.Runtime.CompilerServices;
-using Context = MM.PipeBlocks.Abstractions.Context;
 
 namespace MM.PipeBlocks.Extensions;
 /// <summary>
@@ -47,27 +46,21 @@ public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     public Parameter<V> Execute(Parameter<V> value) => value.Match(
-        x => Context.IsFlipped ? ExecuteRetry(x.Value) : value,
+        x => value.Context.IsFlipped ? ExecuteRetry(x.Value) : value,
         x => ExecuteRetry(value));
 
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
-        x => Context.IsFlipped ? ExecuteRetryAsync(x.Value) : ValueTask.FromResult(value),
+        x => value.Context.IsFlipped ? ExecuteRetryAsync(x.Value) : ValueTask.FromResult(value),
         x => ExecuteRetryAsync(value));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Parameter<V> ExecuteRetry(Parameter<V> value)
     {
         var localValue = value;
-        var snapshot = Context.Capture();
 
         try
         {
-            return _retryPolicy.Execute(() =>
-            {
-                snapshot.Apply();
-
-                return BlockExecutor.ExecuteSync(_block, localValue);
-            });
+            return _retryPolicy.Execute(() => BlockExecutor.ExecuteSync(_block, localValue));
         }
         catch (Exception ex)
         {
@@ -80,16 +73,9 @@ public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private async ValueTask<Parameter<V>> ExecuteRetryAsync(Parameter<V> value)
     {
         var localValue = value;
-        var snapshot = Context.Capture();
-
         try
         {
-            return await _asyncRetryPolicy.ExecuteAsync(async () =>
-            {
-                snapshot.Apply();
-
-                return await BlockExecutor.ExecuteAsync(_block, localValue);
-            });
+            return await _asyncRetryPolicy.ExecuteAsync(async () => await BlockExecutor.ExecuteAsync(_block, localValue));
         }
         catch (Exception ex)
         {
@@ -294,7 +280,7 @@ public class RetryBuilder<V>(BlockBuilder<V> blockBuilder)
         v.SignalBreak(new DefaultFailureState<V>(v.Value)
         {
             FailureReason = e.Message,
-            CorrelationId = Context.CorrelationId
+            CorrelationId = v.Context.CorrelationId
         });
 }
 

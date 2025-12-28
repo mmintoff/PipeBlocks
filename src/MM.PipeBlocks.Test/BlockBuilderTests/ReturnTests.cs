@@ -49,15 +49,17 @@ public class ReturnTests
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
 
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
-                Assert.True(Context.IsFinished);
+                Assert.True(result.Context.IsFinished);
             });
     }
 
@@ -80,15 +82,17 @@ public class ReturnTests
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
 
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
-                Assert.True(Context.IsFinished);
+                Assert.True(result.Context.IsFinished);
             });
     }
 
@@ -111,15 +115,17 @@ public class ReturnTests
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
 
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
-                Assert.True(Context.IsFinished);
+                Assert.True(result.Context.IsFinished);
             });
     }
 
@@ -141,15 +147,17 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
-                Assert.True(Context.IsFinished);
+                Assert.True(result.Context.IsFinished);
             });
     }
 
@@ -170,9 +178,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -197,9 +207,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -225,9 +237,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -253,9 +267,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -281,9 +297,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -308,9 +326,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -336,9 +356,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -364,9 +386,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));
@@ -392,9 +416,11 @@ public class ReturnTests
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var result = pipe.Execute(initialValue, ctx => ctx
-            .With("IsFinished", isFinished)
-            .With("Counter", 0));
+        var result = pipe.Execute(initialValue, ctx =>
+        {
+            ctx.Set("IsFinished", isFinished);
+            ctx.Set("Counter", 0);
+        });
         result.Match(
             f => Assert.Equal(expected, f.Value.Counter),
             s => Assert.Equal(expected, s.Counter));

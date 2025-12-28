@@ -1,16 +1,16 @@
 ﻿using MM.PipeBlocks;
 using Reusable;
 
-var builder = new BlockBuilder<ICustomContext, ICustomValue>();
+var builder = new BlockBuilder<ICustomValue>();
 var pipe = builder.CreatePipe("Generic pipe")
             .Then<GenericCodeBlock>()
             ;
 
-pipe.Execute(new FileDownloadContext(new ConcreteValue_001())
+pipe.Execute(new FileDownloadValue
 {
     FileName = "mudkips.jpg",
     SourceUrl = "http://example.com/"
-}).Value.Match(
+}).Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -25,11 +25,11 @@ pipe.Execute(new FileDownloadContext(new ConcreteValue_001())
         Console.ResetColor();
     });
 
-pipe.Execute(new FileUploadContext(new ConcreteValue_002())
+pipe.Execute(new FileUploadValue
 {
     FileName = "togekiss.jpg",
     DestinationUrl = "http://example.com/"
-}).Value.Match(
+}).Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -44,11 +44,11 @@ pipe.Execute(new FileUploadContext(new ConcreteValue_002())
         Console.ResetColor();
     });
 
-pipe.Execute(new FileCompressionContext(new ConcreteValue_001())
+pipe.Execute(new FileCompressionValue
 {
     FileName = "infernape.jpg",
     ArchiveName = "infernape.gz"
-}).Value.Match(
+}).Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;

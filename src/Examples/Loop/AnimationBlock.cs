@@ -7,7 +7,7 @@ public class AnimationBlock : AsyncCodeBlock<MyValueType>
     protected override async ValueTask<Parameter<MyValueType>> ExecuteAsync(Parameter<MyValueType> parameter, MyValueType value)
     {
         Console.SetCursorPosition(0, 0);
-        var counter = Context.Get<int>("Counter");
+        var counter = parameter.Context.Get<int>("Counter");
 
         for (int i = 0; i < 8; i++)
         {

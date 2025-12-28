@@ -1,254 +1,226 @@
-﻿//using MM.PipeBlocks.Abstractions;
+﻿using MM.PipeBlocks.Abstractions;
 
-//namespace MM.PipeBlocks.Test;
-//public class SwitchBlockTests
-//{
-//    [Fact]
-//    public void ExecuteSwitch_WithContext()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
+namespace MM.PipeBlocks.Test;
 
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//                c.Step switch
-//                {
-//                    0 => b.Run(() => executedAction = true),
-//                    _ => b.Run(() => executedAction = false),
-//                }))
-//            ;
+public class SwitchBlockTests
+{
+    [Fact]
+    public void ExecuteSwitch_WithContext()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        var result = pipe.Execute(context);
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+                v.Context.Get<int>("Step") switch
+                {
+                    0 => b.Run(() => executedAction = true),
+                    _ => b.Run(() => executedAction = false),
+                }))
+            ;
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
+        var result = pipe.Execute(value, ctx =>
+        {
+            ctx.Set("Step", 0);
+        });
 
-//    [Fact]
-//    public void ExecuteSwitch_WithValue()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue);
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch((c, v) =>
-//                v.Counter switch
-//                {
-//                    0 => b.Run(() => executedAction = true),
-//                    _ => b.Run(() => executedAction = false),
-//                }))
-//            ;
+        Assert.True(executedAction);
+        Assert.Equivalent(value, result);
+    }
 
-//        var result = pipe.Execute(context);
+    [Fact]
+    public void ExecuteSwitch_WithValue()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+                v.Value.Counter switch
+                {
+                    0 => b.Run(() => executedAction = true),
+                    _ => b.Run(() => executedAction = false),
+                }))
+            ;
 
-//    [Fact]
-//    public void ExecuteSwitch_WithFailureState()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
-//        context.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
-//        {
-//            FailureReason = "Intentional",
-//            CorrelationId = context.CorrelationId
-//        });
+        var result = pipe.Execute(value);
 
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//                c.Step switch
-//                {
-//                    0 => b.Run(() => executedAction = true),
-//                    _ => b.Run(() => executedAction = false),
-//                }))
-//            ;
+        Assert.True(executedAction);
+        Assert.Equivalent(value, result);
+    }
 
-//        var result = pipe.Execute(context);
+    [Fact]
+    public void ExecuteSwitch_WithFailureState()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        Assert.Equal(context, result);
-//        Assert.False(executedAction);
+        value.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
+        {
+            FailureReason = "Intentional"
+        });
 
-//        result.Value.Match(
-//        x =>
-//        {
-//            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
-//            Assert.Equal(context.CorrelationId, x.CorrelationId);
-//            Assert.Equal("Intentional", x.FailureReason);
-//        },
-//        x => Assert.Fail("Expected a failure"));
-//    }
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+                v.Context.Get<int>("Step") switch
+                {
+                    0 => b.Run(() => executedAction = true),
+                    _ => b.Run(() => executedAction = false),
+                }))
+            ;
 
-//    [Fact]
-//    public void ExecuteAsyncSwitch_WithContext_Sync()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//            new ValueTask<IBlock<MyContext, MyValue>>(c.Step switch
-//            {
-//                0 => b.Run(() => executedAction = true),
-//                _ => b.Run(() => executedAction = false),
-//            })));
+        var result = pipe.Execute(value, ctx =>
+        {
+            ctx.Set("Step", 0);
+        });
 
-//        var result = pipe.Execute(context);
+        Assert.Equivalent(value, result);
+        Assert.False(executedAction);
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
+        result.Match(
+        x =>
+        {
+            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+            Assert.Equal(value.CorrelationId, x.CorrelationId);
+            Assert.Equal("Intentional", x.FailureReason);
+        },
+        x => Assert.Fail("Expected a failure"));
+    }
 
-//    /**/
+    [Fact]
+    public void ExecuteAsyncSwitch_WithContext_Sync()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//    [Fact]
-//    public async Task ExecuteSwitch_WithContext_Async()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//            new ValueTask<IBlock<MyContext, MyValue>>(c.Step switch
-//            {
-//                0 => b.Run(() => executedAction = true),
-//                _ => b.Run(() => executedAction = false),
-//            })));
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+            new ValueTask<IBlock<MyValue>>(v.Context.Get<int>("Step") switch
+            {
+                0 => b.Run(() => executedAction = true),
+                _ => b.Run(() => executedAction = false),
+            })));
 
-//        var result = await pipe.ExecuteAsync(context);
+        var result = pipe.Execute(value, ctx =>
+        {
+            ctx.Set("Step", 0);
+        });
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
+        Assert.True(executedAction);
+        Assert.Equivalent(value, result);
+    }
 
-//    [Fact]
-//    public async Task ExecuteSwitch_WithValue_Async()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue);
+    ///**/
 
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch((c, v) =>
-//            new ValueTask<IBlock<MyContext, MyValue>>(v.Counter switch
-//            {
-//                0 => b.Run(() => executedAction = true),
-//                _ => b.Run(() => executedAction = false),
-//            })));
+    [Fact]
+    public async Task ExecuteSwitch_WithContext_Async()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        var result = await pipe.ExecuteAsync(context);
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+            new ValueTask<IBlock<MyValue>>(v.Context.Get<int>("Step") switch
+            {
+                0 => b.Run(() => executedAction = true),
+                _ => b.Run(() => executedAction = false),
+            })));
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.Set("Step", 0);
+        });
 
-//    [Fact]
-//    public async Task ExecuteSwitch_WithFailureState_Async()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
-//        context.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
-//        {
-//            FailureReason = "Intentional",
-//            CorrelationId = context.CorrelationId
-//        });
+        Assert.True(executedAction);
+        Assert.Equivalent(value, result);
+    }
 
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//                new ValueTask<IBlock<MyContext, MyValue>>(c.Step switch
-//                {
-//                    0 => b.Run(() => executedAction = true),
-//                    _ => b.Run(() => executedAction = false),
-//                })));
+    [Fact]
+    public async Task ExecuteSwitch_WithValue_Async()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        var result = await pipe.ExecuteAsync(context);
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+            new ValueTask<IBlock<MyValue>>(v.Value.Counter switch
+            {
+                0 => b.Run(() => executedAction = true),
+                _ => b.Run(() => executedAction = false),
+            })));
 
-//        Assert.Equal(context, result);
-//        Assert.False(executedAction);
+        var result = await pipe.ExecuteAsync(value);
 
-//        result.Value.Match(
-//        x =>
-//        {
-//            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
-//            Assert.Equal(context.CorrelationId, x.CorrelationId);
-//            Assert.Equal("Intentional", x.FailureReason);
-//        },
-//        x => Assert.Fail("Expected a failure"));
-//    }
+        Assert.True(executedAction);
+        Assert.Equivalent(value, result);
+    }
 
-//    [Fact]
-//    public async Task ExecuteSyncSwitch_WithContext_Async()
-//    {
-//        var initialValue = new MyValue
-//        {
-//            Counter = 0
-//        };
-//        bool executedAction = false;
-//        var context = new MyContext(initialValue)
-//        {
-//            Step = 0
-//        };
+    [Fact]
+    public async Task ExecuteSwitch_WithFailureState_Async()
+    {
+        var initialValue = new MyValue
+        {
+            Counter = 0
+        };
+        bool executedAction = false;
+        var value = new Parameter<MyValue>(initialValue);
 
-//        var builder = new BlockBuilder<MyContext, MyValue>();
-//        var pipe = builder.CreatePipe("test")
-//            .Then(b => b.Switch(c =>
-//                c.Step switch
-//                {
-//                    0 => b.Run(() => executedAction = true),
-//                    _ => b.Run(() => executedAction = false),
-//                }))
-//            ;
+        value.SignalBreak(new DefaultFailureState<MyValue>(initialValue)
+        {
+            FailureReason = "Intentional"
+        });
 
-//        var result = await pipe.ExecuteAsync(context);
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe("test")
+            .Then(b => b.Switch(v =>
+                new ValueTask<IBlock<MyValue>>(v.Value.Counter switch
+                {
+                    0 => b.Run(() => executedAction = true),
+                    _ => b.Run(() => executedAction = false),
+                })));
 
-//        Assert.True(executedAction);
-//        Assert.Same(context, result);
-//    }
-//}
+        var result = await pipe.ExecuteAsync(value);
+
+        Assert.Equivalent(value, result);
+        Assert.False(executedAction);
+
+        result.Match(
+            x =>
+            {
+                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(value.CorrelationId, x.CorrelationId);
+                Assert.Equal("Intentional", x.FailureReason);
+            },
+            x => Assert.Fail("Expected a failure"));
+    }
+}

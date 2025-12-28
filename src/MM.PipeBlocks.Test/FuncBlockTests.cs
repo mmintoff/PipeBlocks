@@ -339,138 +339,55 @@ public class FuncBlockTests
 
     ///**/
 
-    //[Fact]
-    //public async Task Execute_WithSimpleFunction_ReturnsModifiedContext_Async()
-    //{
-    //    // Arrange
-    //    var initialValue = new MyValue();
-    //    var context = new MyContext(initialValue);
-    //    static ValueTask<MyContext> simpleFunc(MyContext c) => ValueTask.FromResult(new MyContext(new MyValue()));
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(simpleFunc);
+    [Fact]
+    public async Task Execute_WithSimpleFunction_ReturnsModifiedContext_Async()
+    {
+        // Arrange
+        var initialValue = new MyValue() { Identifier = Guid.NewGuid() };
+        var value = new Parameter<MyValue>(initialValue);
 
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
+        static ValueTask<Parameter<MyValue>> simpleFunc(Parameter<MyValue> p) => ValueTask.FromResult(new Parameter<MyValue>(new MyValue { Identifier = Guid.NewGuid() }));
+        var funcBlock = new AsyncFuncBlock<MyValue>(simpleFunc);
 
-    //    // Assert
-    //    Assert.NotSame(context, result);
-    //    Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsModifiedContext_Async>g__simpleFunc|14_0)", funcBlock.ToString());
-    //}
+        // Act
+        var result = await funcBlock.ExecuteAsync(value);
 
-    //[Fact]
-    //public async Task Execute_WithSimpleFunction_ReturnsFailureContext_Async()
-    //{
-    //    // Arrange
-    //    var initialValue = new MyValue();
-    //    var context = new MyContext(initialValue);
-    //    ValueTask<MyContext> simpleFunc(MyContext c)
-    //    {
-    //        c.Value.Match(
-    //            _ => { },
-    //            s => c.SignalBreak(new DefaultFailureState<MyValue>(s)
-    //            {
-    //                FailureReason = "Intentional",
-    //                CorrelationId = c.CorrelationId
-    //            }));
-    //        return ValueTask.FromResult(c);
-    //    }
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(simpleFunc);
+        // Assert
+        Assert.NotSame(value, result);
+        Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`1[MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsModifiedContext_Async>g__simpleFunc|12_0)", funcBlock.ToString());
+    }
 
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
+    [Fact]
+    public async Task Execute_WithSimpleFunction_ReturnsFailureContext_Async()
+    {
+        // Arrange
+        var initialValue = new MyValue();
+        var value = new Parameter<MyValue>(initialValue);
 
-    //    // Assert
-    //    result.Value.Match(
-    //        x =>
-    //        {
-    //            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
-    //            Assert.Equal(context.CorrelationId, x.CorrelationId);
-    //            Assert.Equal("Intentional", x.FailureReason);
-    //            Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsFailureContext_Async>g__simpleFunc|15_0)", funcBlock.ToString());
-    //        },
-    //        x => Assert.Fail("Expected a failure"));
-    //}
+        ValueTask<Parameter<MyValue>> simpleFunc(Parameter<MyValue> p)
+        {
+            p.Match(
+                _ => { },
+                s => p.SignalBreak(new DefaultFailureState<MyValue>(s)
+                {
+                    FailureReason = "Intentional"
+                }));
+            return ValueTask.FromResult(p);
+        }
+        var funcBlock = new AsyncFuncBlock<MyValue>(simpleFunc);
 
-    //[Fact]
-    //public async Task Execute_WithValueFunction_ReturnsModifiedContext_Async()
-    //{
-    //    // Arrange
-    //    var initialValue = new MyValue();
-    //    var context = new MyContext(initialValue);
-    //    static ValueTask<MyContext> valueFunc(MyContext c, MyValue v) => ValueTask.FromResult(new MyContext(new MyValue()));
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(valueFunc);
+        // Act
+        var result = await funcBlock.ExecuteAsync(value);
 
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
-
-    //    // Assert
-    //    Assert.NotSame(context, result);
-    //    Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithValueFunction_ReturnsModifiedContext_Async>g__valueFunc|16_0)", funcBlock.ToString());
-    //}
-
-    //[Fact]
-    //public async Task Execute_WithValueFunction_ReturnsFailedContext_Async()
-    //{
-    //    // Arrange
-    //    var initialValue = new MyValue();
-    //    var context = new MyContext(initialValue);
-    //    ValueTask<MyContext> valueFunc(MyContext c, MyValue v)
-    //    {
-    //        c.Value.Match(
-    //            _ => { },
-    //            s => c.SignalBreak(new DefaultFailureState<MyValue>(s)
-    //            {
-    //                FailureReason = "Intentional",
-    //                CorrelationId = c.CorrelationId
-    //            }));
-    //        return ValueTask.FromResult(c);
-    //    }
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(valueFunc);
-
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
-
-    //    // Assert
-    //    result.Value.Match(
-    //        x =>
-    //        {
-    //            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
-    //            Assert.Equal(context.CorrelationId, x.CorrelationId);
-    //            Assert.Equal("Intentional", x.FailureReason);
-    //            Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithValueFunction_ReturnsFailedContext_Async>g__valueFunc|17_0)", funcBlock.ToString());
-    //        },
-    //        x => Assert.Fail("Expected a failure"));
-    //}
-
-    //[Fact]
-    //public async Task Execute_WithSimpleFunction_ReturnsSameContext_Async()
-    //{
-    //    // Arrange
-    //    var context = new MyContext(new MyValue());
-    //    static ValueTask<MyContext> simpleFunc(MyContext c) => ValueTask.FromResult(c);
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(simpleFunc);
-
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
-
-    //    // Assert
-    //    Assert.Same(context, result);
-    //    Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsSameContext_Async>g__simpleFunc|18_0)", funcBlock.ToString());
-    //}
-
-    //[Fact]
-    //public async Task Execute_WithValueFunction_ReturnsSameContext_Async()
-    //{
-    //    // Arrange
-    //    var initialValue = new MyValue();
-    //    var context = new MyContext(initialValue);
-    //    static ValueTask<MyContext> valueFunc(MyContext c, MyValue v) => ValueTask.FromResult(c);
-    //    var funcBlock = new AsyncFuncBlock<MyContext, MyValue>(valueFunc);
-
-    //    // Act
-    //    var result = await funcBlock.ExecuteAsync(context);
-
-    //    // Assert
-    //    Assert.Same(context, result);
-    //    Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`2[MM.PipeBlocks.Test.MyContext,MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithValueFunction_ReturnsSameContext_Async>g__valueFunc|19_0)", funcBlock.ToString());
-    //}
+        // Assert
+        result.Match(
+            x =>
+            {
+                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(result.CorrelationId, x.CorrelationId);
+                Assert.Equal("Intentional", x.FailureReason);
+                Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`1[MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsFailureContext_Async>g__simpleFunc|13_0)", funcBlock.ToString());
+            },
+            x => Assert.Fail("Expected a failure"));
+    }
 }

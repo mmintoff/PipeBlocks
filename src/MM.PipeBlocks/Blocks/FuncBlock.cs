@@ -50,12 +50,12 @@ public class FuncBlock<V> : ISyncBlock<V>
     public Parameter<V> Execute(Parameter<V> value)
     {
         return value.Match(
-            f => Context.IsFlipped ? ExecuteWithValue(f.Value) : value,
-            s => ExecuteWithValue(s));
+            _ => value.Context.IsFlipped ? ExecuteWithStrategy(value) : value,
+            _ => ExecuteWithStrategy(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Parameter<V> ExecuteWithValue(Parameter<V> value)
+    private Parameter<V> ExecuteWithStrategy(Parameter<V> value)
     {
         return _executionStrategy switch
         {
@@ -137,12 +137,12 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         return value.Match(
-            f => Context.IsFlipped ? ExecuteWithValueAsync(f.Value) : new ValueTask<Parameter<V>>(value),
-            s => ExecuteWithValueAsync(s));
+            _ => value.Context.IsFlipped ? ExecuteWithStrategyAsync(value) : new ValueTask<Parameter<V>>(value),
+            _ => ExecuteWithStrategyAsync(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask<Parameter<V>> ExecuteWithValueAsync(Parameter<V> value)
+    private ValueTask<Parameter<V>> ExecuteWithStrategyAsync(Parameter<V> value)
     {
         return _executionStrategy switch
         {

@@ -30,18 +30,18 @@ public partial class StartFromPipeBlock<V>(
     public Parameter<V> Execute(Parameter<V> value)
     {
         int i = startStepFunc(value);
-        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", pipeName, Context.CorrelationId, i);
+        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", pipeName, value.Context.CorrelationId, i);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, Context.CorrelationId);
+                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, value.Context.CorrelationId);
                 break;
             }
 
             value = BlockExecutor.ExecuteSync(_blocks[i], value);
         }
-        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, Context.CorrelationId);
+        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, value.Context.CorrelationId);
         return value;
     }
 
@@ -53,18 +53,18 @@ public partial class StartFromPipeBlock<V>(
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         int i = startStepFunc(value);
-        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", pipeName, Context.CorrelationId, i);
+        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", pipeName, value.Context.CorrelationId, i);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, Context.CorrelationId);
+                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, value.Context.CorrelationId);
                 break;
             }
 
             value = await BlockExecutor.ExecuteAsync(_blocks[i], value);
         }
-        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, Context.CorrelationId);
+        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, value.Context.CorrelationId);
         return value;
     }
 
@@ -112,9 +112,9 @@ public partial class StartFromPipeBlock<V>(
         return this;
     }
 
-    private static bool IsFinished(Parameter<V> value) => Context.IsFlipped
-        ? !(Context.IsFinished || IsFailure(value))
-        : Context.IsFinished || IsFailure(value);
+    private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
+        ? !(value.Context.IsFinished || IsFailure(value))
+        : value.Context.IsFinished || IsFailure(value);
 
     private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,

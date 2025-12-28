@@ -11,7 +11,7 @@ public class SecondBlock : CodeBlock<MyValueType>
 
         parameter.SignalBreak(new DefaultFailureState<MyValueType>(value)
         {
-            CorrelationId = Context.CorrelationId,
+            CorrelationId = parameter.Context.CorrelationId,
             FailureReason = "Arbitrarily failing the pipe"
         });
 

@@ -32,12 +32,12 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>The modified context after executing and joining the results.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        var snapshot = Context.Capture();
+        //var snapshot = Context_old.Capture();
         var values = new Parameter<V>[_blocks.Length];
 
         Parallel.ForEach(_blocks, (block, state, index) =>
         {
-            snapshot.Apply();
+            //snapshot.Apply();
             var valueClone = _cloner(value);
             values[index] = BlockExecutor.ExecuteSync(block, valueClone);
         });
@@ -54,11 +54,11 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>A task representing the asynchronous operation, with the modified context after execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        var snapshot = Context.Capture();
+        //var snapshot = Context_old.Capture();
         var tasks = new Task<Parameter<V>>[_blocks.Length];
         for (int i = 0; i < _blocks.Length; i++)
         {
-            snapshot.Apply();
+            //snapshot.Apply();
             var valueClone = _cloner(value);
             tasks[i] = BlockExecutor.ExecuteAsync(_blocks[i], valueClone).AsTask();
         }

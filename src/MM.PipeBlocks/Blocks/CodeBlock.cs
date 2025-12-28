@@ -5,21 +5,6 @@ using MM.PipeBlocks.Internal;
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
-//public abstract class CodeBlockBase<V>
-//    where V : Either<IFailureState<V>, V>
-//{
-//    public void SignalBreak()
-//    {
-//        Context.IsFinished = true;
-//    }
-
-//    public void SignalBreak(IFailureState<V> failureState)
-//    {
-//        Context.IsFinished = true;
-//        Context.Set("FailureState", failureState);
-//    }
-//}
-
 /// <summary>
 /// Represents a synchronous code block that processes a context, optionally using a value from the context.
 /// </summary>
@@ -35,7 +20,7 @@ public abstract class CodeBlock<V> : ISyncBlock<V>
     /// <param name="context">The context for execution.</param>
     /// <returns>The updated context after execution.</returns>
     public virtual Parameter<V> Execute(Parameter<V> value) => value.Match(
-        x => Context.IsFlipped ? Execute(value, x.Value) : value,
+        x => value.Context.IsFlipped ? Execute(value, x.Value) : value,
         x => Execute(value, x));
 
     /// <summary>
@@ -62,7 +47,7 @@ public abstract class AsyncCodeBlock<V> : IAsyncBlock<V>
     /// <param name="context">The context for execution.</param>
     /// <returns>A <see cref="ValueTask{C}"/> representing the asynchronous operation.</returns>
     public virtual ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
-        x => Context.IsFlipped ? ExecuteAsync(value, x.Value) : ValueTask.FromResult(value),
+        x => value.Context.IsFlipped ? ExecuteAsync(value, x.Value) : ValueTask.FromResult(value),
         x => ExecuteAsync(value, x));
 
     /// <summary>

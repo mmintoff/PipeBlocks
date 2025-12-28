@@ -1,11 +1,12 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace TryCatch;
-public class HandleFailureBlock : CodeBlock<MyContextType, MyValueType>
+public class HandleFailureBlock : CodeBlock<MyValueType>
 {
-    protected override MyContextType Execute(MyContextType context, MyValueType value)
+    protected override Parameter<MyValueType> Execute(Parameter<MyValueType> parameter, MyValueType value)
     {
-        context.CurrentStatus = "Rolled back";
-        return context;
+        parameter.Context.Set("CurrentStatus", "Rolled back");
+        return parameter;
     }
 }

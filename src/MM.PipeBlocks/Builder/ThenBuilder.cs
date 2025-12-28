@@ -29,7 +29,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     public BranchBlock<V> IfThen(Func<Parameter<V>, bool> condition, IBlock<V> doThis, IBlock<V> elseThis)
         => Switch(value => value.Match(
-                _ => Context.IsFlipped && condition(value),
+                _ => value.Context.IsFlipped && condition(value),
                 _ => condition(value)) ? doThis : elseThis);
 
     /// <summary>
@@ -37,7 +37,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     public BranchBlock<V> IfThen(Func<Parameter<V>, ValueTask<bool>> condition, IBlock<V> doThis, IBlock<V> elseThis)
         => Switch(async value => await value.MatchAsync(
-                _ => Context.IsFlipped ? condition(value) : ValueTask.FromResult(false),
+                _ => value.Context.IsFlipped ? condition(value) : ValueTask.FromResult(false),
                 _ => condition(value)) ? doThis : elseThis);
 
     #endregion

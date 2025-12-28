@@ -74,16 +74,16 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>The transformed and finalized context.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        Context.IsFinished = true;
-        s_logContextTerminated(_logger, Context.CorrelationId, null);
+        value.Context.IsFinished = true;
+        s_logContextTerminated(_logger, value.Context.CorrelationId, null);
 
         return value.Match(
             _ => value,
-            x => ExecuteWithValue(x));
+            x => ExecuteWithStrategy(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Parameter<V> ExecuteWithValue(Parameter<V> value)
+    private Parameter<V> ExecuteWithStrategy(Parameter<V> value)
     {
         return _executionStrategy switch
         {
@@ -101,16 +101,16 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>A task that represents the asynchronous operation, containing the updated context.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        Context.IsFinished = true;
-        s_logContextTerminated(_logger, Context.CorrelationId, null);
+        value.Context.IsFinished = true;
+        s_logContextTerminated(_logger, value.Context.CorrelationId, null);
 
         return value.Match(
             _ => new ValueTask<Parameter<V>>(value), // If value is Some but we're not using it, just return context
-            x => ExecuteWithValueAsync(x));
+            x => ExecuteWithStrategyAsync(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask<Parameter<V>> ExecuteWithValueAsync(Parameter<V> value)
+    private ValueTask<Parameter<V>> ExecuteWithStrategyAsync(Parameter<V> value)
     {
         return _executionStrategy switch
         {

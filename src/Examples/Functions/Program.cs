@@ -4,11 +4,13 @@ using MM.PipeBlocks.Abstractions;
 
 var builder = new BlockBuilder<MyValue>();
 var pipe = builder.CreatePipe("func pipe")
-            .Then(b => b.Run(v => v.Value.Fibonacci = Fibonacci(Context.Get<int>("N"))))
+            .Then(b => b.Run(v => v.Value.Fibonacci = Fibonacci(v.Context.Get<int>("N"))))
             ;
 
-var result = pipe.Execute(new MyValue(), c => c
-    .With("N", 35));
+var result = pipe.Execute(new MyValue(), ctx =>
+{
+    ctx.Set("N", 35);
+});
 result.Match(
     failure =>
     {

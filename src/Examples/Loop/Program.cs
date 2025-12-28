@@ -12,14 +12,16 @@ var framePipe = builder.CreatePipe("Frame Pipe")
 var animationPipe = builder.CreatePipe("Animation Pipe")
                         .Then(b => b.Run(() => Console.CursorVisible = false))
                         .Then(b => b.Loop()
-                                    .Do(framePipe, v => Context.Get<int>("Counter") <= 100))
+                                    .Do(framePipe, v => v.Context.Get<int>("Counter") <= 100))
                         .Then(b => b.Run(() => Console.CursorVisible = true))
                         .Then(b => b.Run(() => Console.ResetColor()))
                         .Then(b => b.Run(() => Console.WriteLine()))
                         ;
 
-var result = animationPipe.Execute(new MyValueType(), ctx => ctx
-    .With("Counter", 0));
+var result = animationPipe.Execute(new MyValueType(), ctx =>
+{
+    ctx.Set("Counter", 0);
+});
 result.Match(
     failure =>
     {
