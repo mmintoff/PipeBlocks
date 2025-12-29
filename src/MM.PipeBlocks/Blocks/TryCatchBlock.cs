@@ -7,8 +7,7 @@ namespace MM.PipeBlocks;
 /// <summary>
 /// Represents a block that wraps execution in try-catch-finally semantics, supporting both synchronous and asynchronous execution.
 /// </summary>
-/// <typeparam name="C">The type of the context, implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of value associated with the context.</typeparam>
+/// <typeparam name="V">The type of value associated with the parameter.</typeparam>
 public class TryCatchBlock<V>(
     ILogger<TryCatchBlock<V>> logger,
     IBlock<V> tryBlock,
@@ -20,8 +19,8 @@ public class TryCatchBlock<V>(
     /// Executes the block synchronously, applying try-catch-finally behavior.
     /// Logs and redirects to the catch or finally blocks if necessary.
     /// </summary>
-    /// <param name="context">The context to execute the block with.</param>
-    /// <returns>The updated context after execution.</returns>
+    /// <param name="value">The parameter to execute the block with.</param>
+    /// <returns>The updated parameter after execution.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         bool shouldFlip = false;
@@ -67,8 +66,8 @@ public class TryCatchBlock<V>(
     /// Executes the block asynchronously, applying try-catch-finally behavior.
     /// Logs and redirects to the catch or finally blocks if necessary.
     /// </summary>
-    /// <param name="context">The context to execute the block with.</param>
-    /// <returns>The updated context after asynchronous execution.</returns>
+    /// <param name="value">The parameter to execute the block with.</param>
+    /// <returns>The updated parameter after asynchronous execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         bool shouldFlip = false;

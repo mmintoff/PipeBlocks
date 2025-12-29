@@ -3,18 +3,16 @@ using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Extensions;
 /// <summary>
-/// A block that adapts contexts between two different types, executes a series of blocks in the adapted context,
-/// and then adapts the result back to the original context type.
+/// A block that adapts parameters between two different value types, executes a series of blocks in the adapted parameter,
+/// and then adapts the result back to the original value type.
 /// </summary>
-/// <typeparam name="C1">The original context type.</typeparam>
-/// <typeparam name="V1">The value type associated with the original context.</typeparam>
-/// <typeparam name="C2">The adapted context type.</typeparam>
-/// <typeparam name="V2">The value type associated with the adapted context.</typeparam>
+/// <typeparam name="V1">The original value type associated with the parameter.</typeparam>
+/// <typeparam name="V2">The adapted value type associated with the parameter.</typeparam>
 /// <remarks>
-/// Initializes a new instance of the <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> class.
+/// Initializes a new instance of the <see cref="AdapterPipeBlock{V1, V2}"/> class.
 /// </remarks>
 /// <param name="pipeName">The name of the pipe.</param>
-/// <param name="adapter">The adapter used to convert contexts between <typeparamref name="C1"/> and <typeparamref name="C2"/>.</param>
+/// <param name="adapter">The adapter used to convert parameters between <typeparamref name="V1"/> and <typeparamref name="V2"/>.</param>
 /// <param name="blockBuilder">The block builder used to resolve blocks.</param>
 public sealed class AdapterPipeBlock<V1, V2>(
         string pipeName,
@@ -26,10 +24,10 @@ public sealed class AdapterPipeBlock<V1, V2>(
     private readonly ILogger<AdapterPipeBlock<V1, V2>> _logger = blockBuilder.CreateLogger<AdapterPipeBlock<V1, V2>>();
 
     /// <summary>
-    /// Executes the block synchronously, switching between contexts as necessary.
+    /// Executes the block synchronously, switching between parameters as necessary.
     /// </summary>
-    /// <param name="value">The original context to execute.</param>
-    /// <returns>The original context after execution, potentially modified.</returns>
+    /// <param name="value">The original parameter to execute.</param>
+    /// <returns>The original parameter after execution, potentially modified.</returns>
     public Parameter<V1> Execute(Parameter<V1> value)
     {
         _logger.LogTrace("Switching value from: {V1} to: {V2}", typeof(V1).Name, typeof(V2).Name);
@@ -51,10 +49,10 @@ public sealed class AdapterPipeBlock<V1, V2>(
     }
 
     /// <summary>
-    /// Executes the block asynchronously, switching between contexts as necessary.
+    /// Executes the block asynchronously, switching between parameters as necessary.
     /// </summary>
-    /// <param name="value">The original context to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with the original context potentially modified.</returns>
+    /// <param name="value">The original parameter to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with the original parameter potentially modified.</returns>
     public async ValueTask<Parameter<V1>> ExecuteAsync(Parameter<V1> value)
     {
         _logger.LogTrace("Switching value from: {V1} to: {V2}", typeof(V1).Name, typeof(V2).Name);
@@ -91,7 +89,7 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// Adds a block to the pipe to be executed after the current one.
     /// </summary>
     /// <param name="block">The block to add.</param>
-    /// <returns>The current <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> instance.</returns>
+    /// <returns>The current <see cref="AdapterPipeBlock{V1, V2}"/> instance.</returns>
     public AdapterPipeBlock<V1, V2> Then(IBlock<V2> block)
         => AddBlock(block);
 
@@ -99,7 +97,7 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// Adds a block to the pipe to be executed after the current one.
     /// </summary>
     /// <typeparam name="X">The type of the block to add.</typeparam>
-    /// <returns>The current <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> instance.</returns>
+    /// <returns>The current <see cref="AdapterPipeBlock{V1, V2}"/> instance.</returns>
     public AdapterPipeBlock<V1, V2> Then<X>()
         where X : IBlock<V2>
         => AddBlock(blockBuilder.ResolveInstance<X>());
@@ -108,7 +106,7 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// Adds a block to the pipe to be executed after the current one.
     /// </summary>
     /// <param name="func">A function that resolves the next block.</param>
-    /// <returns>The current <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> instance.</returns>
+    /// <returns>The current <see cref="AdapterPipeBlock{V1, V2}"/> instance.</returns>
     public AdapterPipeBlock<V1, V2> Then(Func<BlockBuilder<V2>, IBlock<V2>> func)
         => AddBlock(func(blockBuilder));
 
@@ -130,49 +128,45 @@ public sealed class AdapterPipeBlock<V1, V2>(
 }
 
 /// <summary>
-/// Defines an adapter that can convert between two different context types.
+/// Defines an adapter that can convert between two different parameter value types.
 /// </summary>
-/// <typeparam name="C1">The original context type.</typeparam>
-/// <typeparam name="V1">The value type associated with the original context.</typeparam>
-/// <typeparam name="C2">The adapted context type.</typeparam>
-/// <typeparam name="V2">The value type associated with the adapted context.</typeparam>
+/// <typeparam name="V1">The original parameter value type.</typeparam>
+/// <typeparam name="V2">The adapted parameter value type.</typeparam>
 public interface IAdapter<V1, V2>
 {
     /// <summary>
-    /// Adapts a context of type <typeparamref name="C1"/> to <typeparamref name="C2"/>.
+    /// Adapts a parameter with value type <typeparamref name="V1"/> to value type <typeparamref name="V2"/>.
     /// </summary>
-    /// <param name="from">The context of type <typeparamref name="C1"/> to adapt.</param>
-    /// <returns>The adapted context of type <typeparamref name="C2"/>.</returns>
+    /// <param name="from">The parameter with value type <typeparamref name="V1"/> to adapt.</param>
+    /// <returns>The adapted parameter with value type <typeparamref name="V2"/>.</returns>
     Parameter<V2> Adapt(Parameter<V1> from);
 
     /// <summary>
-    /// Adapts a context of type <typeparamref name="C2"/> to <typeparamref name="C1"/>.
+    /// Adapts a parameter with value type <typeparamref name="V2"/> to value type <typeparamref name="V1"/>.
     /// </summary>
-    /// <param name="from">The context of type <typeparamref name="C2"/> to adapt.</param>
-    /// <returns>The adapted context of type <typeparamref name="C1"/>.</returns>
+    /// <param name="from">The parameter with value type <typeparamref name="V2"/> to adapt.</param>
+    /// <returns>The adapted parameter with value type <typeparamref name="V1"/>.</returns>
     Parameter<V1> Adapt(Parameter<V2> from);
 }
 
 /// <summary>
-/// Extension method to create a new <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> with the specified parameters.
+/// Extension method to create a new <see cref="AdapterPipeBlock{V1, V2}"/> with the specified parameters.
 /// </summary>
-/// <returns>A new instance of <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/>, which represents a pipeline that adapts between the two context types and can execute a series of blocks.</returns>
+/// <returns>A new instance of <see cref="AdapterPipeBlock{V1, V2}"/>, which represents a pipeline that adapts between the two value types and can execute a series of blocks.</returns>
 public static partial class BuilderExtensions
 {
     /// <summary>
-    /// Creates an <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> pipeline, starting with the provided <paramref name="pipeName"/>, 
-    /// and setting up the adapter and block builder for transforming and processing the contexts.
+    /// Creates an <see cref="AdapterPipeBlock{V1, V2}"/> pipeline, starting with the provided <paramref name="pipeName"/>, 
+    /// and setting up the adapter and block builder for transforming and processing the parameters.
     /// </summary>
     /// <param name="_">The block builder for resolving the blocks.</param>
     /// <param name="pipeName">The name of the pipe.</param>
     /// <param name="builder">The block builder for resolving the blocks.</param>
-    /// <param name="adapter">The adapter responsible for transforming between source and target contexts.</param>
-    /// <typeparam name="C1">The source context type.</typeparam>
-    /// <typeparam name="V1">The value type associated with the source context.</typeparam>
-    /// <typeparam name="C2">The target context type.</typeparam>
-    /// <typeparam name="V2">The value type associated with the target context.</typeparam>
-    /// <returns>A new instance of <see cref="AdapterPipeBlock{C1, V1, C2, V2}"/> configured with the provided parameters.</returns>
-    public static AdapterPipeBlock<V1, V2> CreatePipe<C1, V1, C2, V2>(this BlockBuilder<V1> _,
+    /// <param name="adapter">The adapter responsible for transforming between source and target parameters.</param>
+    /// <typeparam name="V1">The value type associated with the source parameter.</typeparam>
+    /// <typeparam name="V2">The value type associated with the target parameter.</typeparam>
+    /// <returns>A new instance of <see cref="AdapterPipeBlock{V1, V2}"/> configured with the provided parameters.</returns>
+    public static AdapterPipeBlock<V1, V2> CreatePipe<V1, V2>(this BlockBuilder<V1> _,
         string pipeName,
         BlockBuilder<V2> builder,
         IAdapter<V1, V2> adapter)

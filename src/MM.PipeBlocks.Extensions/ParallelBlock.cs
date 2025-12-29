@@ -5,8 +5,7 @@ namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that executes multiple blocks in parallel and joins their results.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     private readonly IBlock<V>[] _blocks;
@@ -14,11 +13,11 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private readonly Clone<V> _cloner;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ParallelBlock{C, V}"/> class.
+    /// Initializes a new instance of the <see cref="ParallelBlock{V}"/> class.
     /// </summary>
     /// <param name="blocks">The blocks to execute in parallel.</param>
     /// <param name="joiner">The joiner function to combine the results of the parallel blocks.</param>
-    /// <param name="cloner">A function to clone the context.</param>
+    /// <param name="cloner">A function to clone the parameter.</param>
     public ParallelBlock(
         IBlock<V>[] blocks,
         Either<Join<V>, JoinAsync<V>> joiner,
@@ -28,8 +27,8 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the blocks synchronously in parallel and then joins the results.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>The modified context after executing and joining the results.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>The modified parameter after executing and joining the results.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         //var snapshot = Context_old.Capture();
@@ -50,8 +49,8 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the blocks asynchronously in parallel and then joins the results.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with the modified context after execution.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         //var snapshot = Context_old.Capture();
@@ -77,16 +76,15 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 public static partial class BuilderExtensions
 {
     /// <summary>
-    /// Creates a new <see cref="ParallelBlock{C, V}"/> that executes multiple blocks in parallel.
+    /// Creates a new <see cref="ParallelBlock{V}"/> that executes multiple blocks in parallel.
     /// </summary>
-    /// <typeparam name="C">The context type.</typeparam>
-    /// <typeparam name="V">The value type associated with the context.</typeparam>
+    /// <typeparam name="V">The value type associated with the parameter.</typeparam>
     /// <param name="_">The block builder used to create the parallel block.</param>
     /// <param name="blocks">The blocks to execute in parallel.</param>
     /// <param name="joiner">The function to join the results of the parallel blocks.</param>
-    /// <param name="cloner">The function used to clone the context.</param>
-    /// <returns>A new <see cref="ParallelBlock{C, V}"/> instance.</returns>
-    public static ParallelBlock<V> Parallelize<C, V>(this BlockBuilder<V> _,
+    /// <param name="cloner">The function used to clone the parameter.</param>
+    /// <returns>A new <see cref="ParallelBlock{V}"/> instance.</returns>
+    public static ParallelBlock<V> Parallelize<V>(this BlockBuilder<V> _,
         IBlock<V>[] blocks,
         Clone<V> cloner,
         Either<Join<V>, JoinAsync<V>> joiner)
@@ -94,39 +92,35 @@ public static partial class BuilderExtensions
 }
 
 /// <summary>
-/// A delegate that defines a method for cloning a context.
+/// A delegate that defines a method for cloning a parameter.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-/// <param name="context">The context to clone.</param>
-/// <returns>The cloned context.</returns>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+/// <param name="value">The parameter to clone.</param>
+/// <returns>The cloned parameter.</returns>
 public delegate Parameter<V> Clone<V>(Parameter<V> value);
 
 /// <summary>
-/// An asynchronous delegate that defines a method for cloning a context.
+/// An asynchronous delegate that defines a method for cloning a parameter.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-/// <param name="context">The context to clone.</param>
-/// <returns>A task representing the asynchronous operation to clone the context.</returns>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+/// <param name="value">The parameter to clone.</param>
+/// <returns>A task representing the asynchronous operation to clone the parameter.</returns>
 public delegate ValueTask<Parameter<V>> CloneAsync<V>(Parameter<V> value);
 
 /// <summary>
-/// A delegate that defines a method to join the results of parallel blocks into a single context.
+/// A delegate that defines a method to join the results of parallel blocks into a single parameter.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-/// <param name="originalContext">The original context before parallel execution.</param>
-/// <param name="parallelContexts">The contexts from each parallel block execution.</param>
-/// <returns>The joined context after combining the parallel contexts.</returns>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+/// <param name="originalValue">The original parameter before parallel execution.</param>
+/// <param name="parallelValues">The parameters from each parallel block execution.</param>
+/// <returns>The joined parameter after combining the parallel parameters.</returns>
 public delegate Parameter<V> Join<V>(Parameter<V> originalValue, Parameter<V>[] parallelValues);
 
 /// <summary>
-/// An asynchronous delegate that defines a method to join the results of parallel blocks into a single context.
+/// An asynchronous delegate that defines a method to join the results of parallel blocks into a single parameter.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-/// <param name="originalContext">The original context before parallel execution.</param>
-/// <param name="parallelContexts">The contexts from each parallel block execution.</param>
-/// <returns>A task representing the asynchronous operation to join the contexts into a single context.</returns>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+/// <param name="originalValue">The original parameter before parallel execution.</param>
+/// <param name="parallelValues">The parameters from each parallel block execution.</param>
+/// <returns>A task representing the asynchronous operation to join the parameters into a single parameter.</returns>
 public delegate ValueTask<Parameter<V>> JoinAsync<V>(Parameter<V> originalValue, Parameter<V>[] parallelValues);

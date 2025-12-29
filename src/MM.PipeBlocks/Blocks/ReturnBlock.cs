@@ -7,11 +7,10 @@ using System.Runtime.CompilerServices;
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
-/// A block that marks the context as finished and optionally transforms it before returning.
+/// A block that marks the parameter as finished and optionally transforms it before returning.
 /// Supports both synchronous and asynchronous execution logic.
 /// </summary>
-/// <typeparam name="C">The type of context implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value held in the context.</typeparam>
+/// <typeparam name="V">The type of the value held in the parameter.</typeparam>
 public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     private readonly Func<Parameter<V>, Parameter<V>>? _syncFunc;
@@ -34,7 +33,7 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a return block that marks context as finished without transformation.
+    /// Initializes a return block that marks parameter as finished without transformation.
     /// </summary>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
     public ReturnBlock(ILogger<ReturnBlock<V>> logger)
@@ -47,7 +46,7 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// Initializes a synchronous return block using a transformation function.
     /// </summary>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
-    /// <param name="func">A function that transforms the context.</param>
+    /// <param name="func">A function that transforms the parameter.</param>
     public ReturnBlock(ILogger<ReturnBlock<V>> logger, Func<Parameter<V>, Parameter<V>> func)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -59,7 +58,7 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// Initializes an asynchronous return block using a transformation function.
     /// </summary>
     /// <param name="logger">The logger for diagnostics and tracing.</param>
-    /// <param name="func">An asynchronous function that transforms the context.</param>
+    /// <param name="func">An asynchronous function that transforms the parameter.</param>
     public ReturnBlock(ILogger<ReturnBlock<V>> logger, Func<Parameter<V>, ValueTask<Parameter<V>>> func)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -68,10 +67,10 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the block synchronously, transforming and finalizing the context.
+    /// Executes the block synchronously, transforming and finalizing the parameter.
     /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>The transformed and finalized context.</returns>
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>The transformed and finalized parameter.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         value.Context.IsFinished = true;
@@ -95,10 +94,10 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the block asynchronously, transforming and finalizing the context.
+    /// Executes the block asynchronously, transforming and finalizing the parameter.
     /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the updated context.</returns>
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the updated parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         value.Context.IsFinished = true;
@@ -130,23 +129,22 @@ public sealed class ReturnBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 }
 
 /// <summary>
-/// A no-op block that simply returns the provided context unchanged.
+/// A no-op block that simply returns the provided parameter unchanged.
 /// </summary>
-/// <typeparam name="C">The type of context implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value held in the context.</typeparam>
+/// <typeparam name="V">The type of the value held in the parameter.</typeparam>
 public sealed class NoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     /// <summary>
-    /// Synchronously returns the context as-is.
+    /// Synchronously returns the parameter as-is.
     /// </summary>
-    /// <param name="context">The current context.</param>
-    /// <returns>The unchanged context.</returns>
+    /// <param name="value">The current parameter.</param>
+    /// <returns>The unchanged parameter.</returns>
     public Parameter<V> Execute(Parameter<V> value) => value;
 
     /// <summary>
-    /// Asynchronously returns the context as-is.
+    /// Asynchronously returns the parameter as-is.
     /// </summary>
-    /// <param name="context">The current context.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the unchanged context.</returns>
+    /// <param name="value">The current parameter.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the unchanged parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => ValueTask.FromResult(value);
 }

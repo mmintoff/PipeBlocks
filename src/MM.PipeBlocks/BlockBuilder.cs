@@ -4,32 +4,31 @@ using MM.PipeBlocks.Internal;
 
 namespace MM.PipeBlocks;
 /// <summary>
-/// Provides functionality to build and resolve blocks for a specific context and value type.
+/// Provides functionality to build and resolve blocks for a specific value type.
 /// </summary>
-/// <typeparam name="C">The context type that implements <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value in the context.</typeparam>
+/// <typeparam name="V">The type of the value in the parameter.</typeparam>
 /// <param name="resolver">The block resolver used to resolve block instances.</param>
 /// <param name="loggerFactory">The logger factory used to create loggers for blocks.</param>
 public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory loggerFactory)
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver and NoopLoggerFactory.
+    /// Initializes a new instance of the <see cref="BlockBuilder{V}"/> class using the default block resolver and NoopLoggerFactory.
     /// </summary>
     public BlockBuilder()
         : this(new DefaultBlockResolver<V>(), new NoopLoggerFactory()) { }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="BlockBuilder{C, V}"/> class using the default block resolver.
+    /// Initializes a new instance of the <see cref="BlockBuilder{V}"/> class using the default block resolver.
     /// </summary>
     /// <param name="loggerFactory">The logger factory used to create loggers.</param>
     public BlockBuilder(ILoggerFactory loggerFactory)
         : this(new DefaultBlockResolver<V>(), loggerFactory) { }
 
     /// <summary>
-    /// Creates a new <see cref="PipeBlock{C, V}"/> with the specified name.
+    /// Creates a new <see cref="PipeBlock{V}"/> with the specified name.
     /// </summary>
     /// <param name="pipeName">The name of the pipe.</param>
-    /// <returns>A new instance of <see cref="PipeBlock{C, V}"/>.</returns>
+    /// <returns>A new instance of <see cref="PipeBlock{V}"/>.</returns>
     public PipeBlock<V> CreatePipe(string pipeName)
         => new(pipeName, this);
 

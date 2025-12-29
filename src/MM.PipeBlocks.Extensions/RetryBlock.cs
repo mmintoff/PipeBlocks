@@ -8,8 +8,7 @@ namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that wraps another block with retry behaviours.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     private readonly IBlock<V> _block;
@@ -19,7 +18,7 @@ public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private readonly ExceptionHandler<V> _exceptionHandler;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RetryBlock{C, V}"/> class.
+    /// Initializes a new instance of the <see cref="RetryBlock{V}"/> class.
     /// </summary>
     /// <param name="block">The block to be executed with retry logic.</param>
     /// <param name="delays">A sequence of retry delays.</param>
@@ -91,10 +90,9 @@ public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 }
 
 /// <summary>
-/// A builder class for constructing <see cref="RetryBlock{C, V}"/> instances.
+/// A builder class for constructing <see cref="RetryBlock{V}"/> instances.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 public class RetryBuilder<V>(BlockBuilder<V> blockBuilder)
 {
     /// <summary>
@@ -285,7 +283,7 @@ public class RetryBuilder<V>(BlockBuilder<V> blockBuilder)
 }
 
 /// <summary>
-/// Extension methods for the <see cref="BlockBuilder{C, V}"/> to add retry capabilities.
+/// Extension methods for the <see cref="BlockBuilder{V}"/> to add retry capabilities.
 /// </summary>
 public static partial class BuilderExtensions
 {
@@ -296,9 +294,7 @@ public static partial class BuilderExtensions
 /// <summary>
 /// Delegate representing an exception handler for a block.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type.</typeparam>
-/// <param name="context">The current context.</param>
-/// <param name="value">The input value being processed.</param>
+/// <param name="value">The current parameter.</param>
 /// <param name="exception">The exception that occurred.</param>
 public delegate void ExceptionHandler<V>(Parameter<V> value, Exception exception);

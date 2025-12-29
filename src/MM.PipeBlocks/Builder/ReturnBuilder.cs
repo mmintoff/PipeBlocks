@@ -1,6 +1,8 @@
 ﻿using MM.PipeBlocks.Abstractions;
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace MM.PipeBlocks;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// A fluent builder for composing pipeline blocks that can control flow,
 /// return early, or do nothing (no-op).

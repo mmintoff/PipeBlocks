@@ -1,5 +1,4 @@
 ﻿using MM.PipeBlocks.Abstractions;
-using MM.PipeBlocks.Internal;
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
@@ -7,10 +6,9 @@ using System.Runtime.CompilerServices;
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
-/// Represents a branching block that determines the next block to execute based on the current context and value.
+/// Represents a branching block that determines the next block to execute based on the current parameter and value.
 /// </summary>
-/// <typeparam name="C">The context type, implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
+/// <typeparam name="V">The type of the value associated with the parameter.</typeparam>
 public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     private readonly Func<Parameter<V>, IBlock<V>>? _syncContextFunc;
@@ -25,7 +23,7 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a new instance using a synchronous function that takes the context.
+    /// Initializes a new instance using a synchronous function that takes the parameter.
     /// </summary>
     public BranchBlock(Func<Parameter<V>, IBlock<V>> nextBlockFunc)
     {
@@ -34,7 +32,7 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a new instance using an asynchronous function that takes the context.
+    /// Initializes a new instance using an asynchronous function that takes the parameter.
     /// </summary>
     public BranchBlock(Func<Parameter<V>, ValueTask<IBlock<V>>> nextBlockFunc)
     {
@@ -43,10 +41,10 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the block synchronously by determining the next block based on the context and invoking it.
+    /// Executes the block synchronously by determining the next block based on the parameter and invoking it.
     /// </summary>
-    /// <param name="context">The context used to determine and invoke the next block.</param>
-    /// <returns>The updated context after executing the determined block.</returns>
+    /// <param name="value">The parameter used to determine and invoke the next block.</param>
+    /// <returns>The updated parameter after executing the determined block.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         return value.Match(
@@ -68,10 +66,10 @@ public sealed class BranchBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the block asynchronously by determining the next block based on the context and invoking it.
+    /// Executes the block asynchronously by determining the next block based on the parameter and invoking it.
     /// </summary>
-    /// <param name="context">The context used to determine and invoke the next block.</param>
-    /// <returns>A <see cref="ValueTask{C}"/> representing the updated context.</returns>
+    /// <param name="value">The parameter used to determine and invoke the next block.</param>
+    /// <returns>A <see cref="ValueTask{T}"/> representing the updated parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         return value.Match(

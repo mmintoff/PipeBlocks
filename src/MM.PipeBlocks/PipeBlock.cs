@@ -5,12 +5,11 @@ namespace MM.PipeBlocks;
 /// <summary>
 /// Represents a pipeline of blocks that execute sequentially in either synchronous or asynchronous fashion.
 /// </summary>
-/// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
 public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     /// <summary>
-    /// The <see cref="BlockBuilder{C, V}"/> used to resolve and create blocks.
+    /// The <see cref="BlockBuilder{V}"/> used to resolve and create blocks.
     /// </summary>
     protected readonly BlockBuilder<V> Builder;
 
@@ -23,6 +22,8 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private readonly ILogger<PipeBlock<V>> _logger;
 
     private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logAppliedContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applied context configuration for pipe: '{name}'");
 
     private static readonly Action<ILogger, string, Guid, Exception?> s_sync_logExecutingPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' synchronously for context: {CorrelationId}");
     private static readonly Action<ILogger, string, int, Guid, Exception?> s_sync_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
@@ -33,7 +34,7 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private static readonly Action<ILogger, string, Guid, Exception?> s_async_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}");
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PipeBlock{C, V}"/> class with a given name and builder.
+    /// Initializes a new instance of the <see cref="PipeBlock{V}"/> class with a given name and builder.
     /// </summary>
     /// <param name="pipeName">The name of the pipe, used for logging.</param>
     /// <param name="blockBuilder">The builder used to resolve additional blocks.</param>
@@ -45,9 +46,17 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
         _logger.LogInformation("Created pipe: '{name}'", _pipeName);
     }
 
-    public Parameter<V> Execute(Parameter<V> value, Action<Context> configureContext)
+    /// <summary>
+    /// Executes the pipeline synchronously with the provided parameter and an optional context configuration.
+    /// </summary>
+    /// <param name="value">The parameter to execute the pipeline with.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>The updated parameter after pipeline execution.</returns>
+    public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
     {
-        configureContext(value.Context);
+        s_logApplyingContextConfig(_logger, _pipeName, null);
+        configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, _pipeName, null);
         return Execute(value);
     }
 
@@ -73,9 +82,17 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
         return value;
     }
 
-    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context> configureContext)
+    /// <summary>
+    /// Executes the pipeline asynchronously with the provided parameter and an optional context configuration.
+    /// </summary>
+    /// <param name="value">The parameter to execute the pipeline with.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
     {
-        configureContext(value.Context);
+        s_logApplyingContextConfig(_logger, _pipeName, null);
+        configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, _pipeName, null);
         return ExecuteAsync(value);  // Return the task directly, no await
     }
 
@@ -103,13 +120,13 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Converts the current <see cref="PipeBlock{C, V}"/> into a synchronous function.
+    /// Converts the current <see cref="PipeBlock{V}"/> into a synchronous function.
     /// </summary>
     /// <returns>A function that executes the block synchronously.</returns>
     public PipeBlockDelegate<V> ToDelegate() => Execute;
 
     /// <summary>
-    /// Converts the current <see cref="PipeBlock{C, V}"/> into an asynchronous function.
+    /// Converts the current <see cref="PipeBlock{V}"/> into an asynchronous function.
     /// </summary>
     /// <returns>A function that executes the block asynchronously.</returns>
     public PipeBlockAsyncDelegate<V> ToAsyncDelegate() => ExecuteAsync;

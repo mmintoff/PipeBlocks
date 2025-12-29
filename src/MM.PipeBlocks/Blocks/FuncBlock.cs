@@ -5,10 +5,9 @@ using System.Runtime.CompilerServices;
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
-/// A synchronous block that executes a function or action with optional access to the context's value.
+/// A synchronous block that executes a function or action with optional access to the parameter's value.
 /// </summary>
-/// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
+/// <typeparam name="V">The type of the value associated with the parameter.</typeparam>
 public class FuncBlock<V> : ISyncBlock<V>
 {
     private readonly Func<Parameter<V>, Parameter<V>>? _func;
@@ -25,7 +24,7 @@ public class FuncBlock<V> : ISyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a new instance using a function that transforms the context.
+    /// Initializes a new instance using a function that transforms the parameter.
     /// </summary>
     public FuncBlock(Func<Parameter<V>, Parameter<V>> func)
     {
@@ -34,7 +33,7 @@ public class FuncBlock<V> : ISyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a new instance using an action that operates on the context.
+    /// Initializes a new instance using an action that operates on the parameter.
     /// </summary>
     public FuncBlock(Action<Parameter<V>> action)
     {
@@ -43,10 +42,10 @@ public class FuncBlock<V> : ISyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the function or action against the given context.
+    /// Executes the function or action against the given parameter.
     /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>The updated context.</returns>
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>The updated parameter.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         return value.Match(
@@ -92,10 +91,9 @@ public class FuncBlock<V> : ISyncBlock<V>
 }
 
 /// <summary>
-/// An asynchronous block that executes a function or action with optional access to the context's value.
+/// An asynchronous block that executes a function or action with optional access to the parameter's value.
 /// </summary>
-/// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
+/// <typeparam name="V">The type of the value associated with the parameter.</typeparam>
 public class AsyncFuncBlock<V> : IAsyncBlock<V>
 {
     private readonly Func<Parameter<V>, ValueTask<Parameter<V>>>? _func;
@@ -112,7 +110,7 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Initializes a new instance using an asynchronous function that returns a context.
+    /// Initializes a new instance using an asynchronous function that returns a parameter.
     /// </summary>
     public AsyncFuncBlock(Func<Parameter<V>, ValueTask<Parameter<V>>> func)
     {
@@ -130,10 +128,10 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
     }
 
     /// <summary>
-    /// Executes the asynchronous function or action against the given context.
+    /// Executes the asynchronous function or action against the given parameter.
     /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         return value.Match(

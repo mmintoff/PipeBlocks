@@ -4,8 +4,7 @@ namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that executes a loop based on a condition, either performing a "Do" or "While" loop style.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 public sealed class LoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
     private readonly IBlock<V> _block;
@@ -13,7 +12,7 @@ public sealed class LoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     private readonly LoopStyle _loopStyle;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="LoopBlock{C, V}"/> class.
+    /// Initializes a new instance of the <see cref="LoopBlock{V}"/> class.
     /// </summary>
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
@@ -25,8 +24,8 @@ public sealed class LoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the block synchronously, looping until the evaluation function returns false.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>The modified context after loop execution.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>The modified parameter after loop execution.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         if (_loopStyle == LoopStyle.Do)
@@ -40,8 +39,8 @@ public sealed class LoopBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the block asynchronously, looping until the evaluation function returns false.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>A task that represents the asynchronous operation, with the modified context after loop execution.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>A task that represents the asynchronous operation, with the modified parameter after loop execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         if (_loopStyle == LoopStyle.Do)
@@ -70,10 +69,9 @@ public enum LoopStyle
 }
 
 /// <summary>
-/// A builder class for constructing <see cref="LoopBlock{C, V}"/> instances.
+/// A builder class for constructing <see cref="LoopBlock{V}"/> instances.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
 {
     /// <summary>
@@ -81,7 +79,7 @@ public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
     /// </summary>
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
-    /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "Do" loop.</returns>
+    /// <returns>A new <see cref="LoopBlock{V}"/> configured for a "Do" loop.</returns>
     public LoopBlock<V> Do(IBlock<V> block, Func<Parameter<V>, bool> evaluator)
         => new(block, evaluator, LoopStyle.Do);
 
@@ -90,7 +88,7 @@ public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
     /// </summary>
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
-    /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "Do" loop.</returns>
+    /// <returns>A new <see cref="LoopBlock{V}"/> configured for a "Do" loop.</returns>
     public LoopBlock<V> Do<X>(Func<Parameter<V>, bool> evaluator)
         where X : IBlock<V>
         => new(blockBuilder.ResolveInstance<X>(), evaluator, LoopStyle.Do);
@@ -100,7 +98,7 @@ public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
     /// </summary>
     /// <param name="block">The block to execute in the loop.</param>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
-    /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "While" loop.</returns>
+    /// <returns>A new <see cref="LoopBlock{V}"/> configured for a "While" loop.</returns>
     public LoopBlock<V> While(IBlock<V> block, Func<Parameter<V>, bool> evaluator)
         => new(block, evaluator, LoopStyle.While);
 
@@ -109,24 +107,23 @@ public class LoopBuilder<V>(BlockBuilder<V> blockBuilder)
     /// </summary>
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <param name="evaluator">A function that evaluates whether to continue looping.</param>
-    /// <returns>A new <see cref="LoopBlock{C, V}"/> configured for a "While" loop.</returns>
+    /// <returns>A new <see cref="LoopBlock{V}"/> configured for a "While" loop.</returns>
     public LoopBlock<V> While<X>(Func<Parameter<V>, bool> evaluator)
         where X : IBlock<V>
         => new(blockBuilder.ResolveInstance<X>(), evaluator, LoopStyle.While);
 }
 
 /// <summary>
-/// Extension methods for the <see cref="BlockBuilder{C, V}"/> class to create loop blocks.
+/// Extension methods for the <see cref="BlockBuilder{V}"/> class to create loop blocks.
 /// </summary>
 public static partial class BuilderExtensions
 {
     /// <summary>
-    /// Creates a new <see cref="LoopBuilder{C, V}"/> instance for constructing loop blocks.
+    /// Creates a new <see cref="LoopBuilder{V}"/> instance for constructing loop blocks.
     /// </summary>
-    /// <typeparam name="C">The context type.</typeparam>
-    /// <typeparam name="V">The value type associated with the context.</typeparam>
-    /// <param name="builder">The <see cref="BlockBuilder{C, V}"/> instance used to resolve blocks.</param>
-    /// <returns>A new <see cref="LoopBuilder{C, V}"/> instance.</returns>
+    /// <typeparam name="V">The value type associated with the parameter.</typeparam>
+    /// <param name="builder">The <see cref="BlockBuilder{V}"/> instance used to resolve blocks.</param>
+    /// <returns>A new <see cref="LoopBuilder{V}"/> instance.</returns>
     public static LoopBuilder<V> Loop<V>(this BlockBuilder<V> builder)
         => new(builder);
 }

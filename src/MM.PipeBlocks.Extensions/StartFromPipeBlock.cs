@@ -5,10 +5,9 @@ namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that executes a series of blocks starting from a specific step, based on a function that determines the start step.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 /// <remarks>
-/// Initializes a new instance of the <see cref="StartFromPipeBlock{C, V}"/> class.
+/// Initializes a new instance of the <see cref="StartFromPipeBlock{V}"/> class.
 /// </remarks>
 /// <param name="pipeName">The name of the pipe.</param>
 /// <param name="startStepFunc">The function to determine the step to start from.</param>
@@ -23,10 +22,22 @@ public partial class StartFromPipeBlock<V>(
     private readonly ILogger<StartFromPipeBlock<V>> _logger = blockBuilder.CreateLogger<StartFromPipeBlock<V>>();
 
     /// <summary>
-    /// Executes the blocks synchronously, starting from a specified step, and returns the modified context.
+    /// Executes the blocks synchronously, starting from a specified step, with an optional context configuration.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>The modified context after executing the blocks.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>The modified parameter after executing the blocks.</returns>
+    public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
+    {
+        configureContext?.Invoke(value.Context);
+        return Execute(value);
+    }
+
+    /// <summary>
+    /// Executes the blocks synchronously, starting from a specified step, and returns the modified parameter.
+    /// </summary>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>The modified parameter after executing the blocks.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
         int i = startStepFunc(value);
@@ -46,10 +57,22 @@ public partial class StartFromPipeBlock<V>(
     }
 
     /// <summary>
-    /// Executes the blocks asynchronously, starting from a specified step, and returns the modified context.
+    /// Executes the blocks asynchronously, starting from a specified step, with an optional context configuration.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with the modified context after execution.</returns>
+    /// <param name="value">The parameter to execute.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
+    {
+        configureContext?.Invoke(value.Context);
+        return ExecuteAsync(value);  // Return the task directly, no await
+    }
+
+    /// <summary>
+    /// Executes the blocks asynchronously, starting from a specified step, and returns the modified parameter.
+    /// </summary>
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         int i = startStepFunc(value);
@@ -69,13 +92,13 @@ public partial class StartFromPipeBlock<V>(
     }
 
     /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into a synchronous function.
+    /// Converts the current <see cref="StartFromPipeBlock{V}"/> into a synchronous function.
     /// </summary>
     /// <returns>A function that executes the block synchronously.</returns>
     public PipeBlockDelegate<V> ToDelegate() => Execute;
 
     /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into an asynchronous function.
+    /// Converts the current <see cref="StartFromPipeBlock{V}"/> into an asynchronous function.
     /// </summary>
     /// <returns>A function that executes the block asynchronously.</returns>
     public PipeBlockAsyncDelegate<V> ToAsyncDelegate() => ExecuteAsync;
@@ -84,7 +107,7 @@ public partial class StartFromPipeBlock<V>(
     /// Adds a new block to the pipe to be executed after the current blocks.
     /// </summary>
     /// <param name="block">The block to add.</param>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
     public StartFromPipeBlock<V> Then(IBlock<V> block)
         => AddBlock(block);
 
@@ -92,7 +115,7 @@ public partial class StartFromPipeBlock<V>(
     /// Adds a new block to the pipe to be executed after the current blocks, based on a resolved instance.
     /// </summary>
     /// <typeparam name="X">The type of block to resolve and add.</typeparam>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
     public StartFromPipeBlock<V> Then<X>()
         where X : IBlock<V>
         => AddBlock(blockBuilder.ResolveInstance<X>());
@@ -101,7 +124,7 @@ public partial class StartFromPipeBlock<V>(
     /// Adds a new block to the pipe to be executed after the current blocks, based on a function that resolves the block.
     /// </summary>
     /// <param name="func">The function that resolves the block to add.</param>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
     public StartFromPipeBlock<V> Then(Func<BlockBuilder<V>, IBlock<V>> func)
         => AddBlock(func(blockBuilder));
 
@@ -129,14 +152,13 @@ public partial class StartFromPipeBlock<V>(
 public static partial class BuilderExtensions
 {
     /// <summary>
-    /// Creates a new <see cref="StartFromPipeBlock{C, V}"/> with a specified start step function.
+    /// Creates a new <see cref="StartFromPipeBlock{V}"/> with a specified start step function.
     /// </summary>
-    /// <typeparam name="C">The context type.</typeparam>
-    /// <typeparam name="V">The value type associated with the context.</typeparam>
+    /// <typeparam name="V">The value type associated with the parameter.</typeparam>
     /// <param name="blockBuilder">The block builder used to resolve the blocks.</param>
     /// <param name="pipeName">The name of the pipe.</param>
     /// <param name="startStepFunc">The function that determines the start step for execution.</param>
-    /// <returns>A new <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
+    /// <returns>A new <see cref="StartFromPipeBlock{V}"/> instance.</returns>
     public static StartFromPipeBlock<V> CreatePipe<V>(this BlockBuilder<V> blockBuilder,
         string pipeName,
         Func<Parameter<V>, int> startStepFunc)
