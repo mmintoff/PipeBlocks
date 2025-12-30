@@ -63,7 +63,7 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the pipeline synchronously with the provided context.
     /// </summary>
-    /// <param name="context">The execution context.</param>
+    /// <param name="value">The execution context.</param>
     /// <returns>The updated context after pipeline execution.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
@@ -99,7 +99,7 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <summary>
     /// Executes the pipeline asynchronously with the provided context.
     /// </summary>
-    /// <param name="context">The execution context.</param>
+    /// <param name="value">The execution context.</param>
     /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {

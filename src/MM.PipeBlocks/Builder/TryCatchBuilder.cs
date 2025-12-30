@@ -1,8 +1,6 @@
 ﻿using MM.PipeBlocks.Abstractions;
 
-#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace MM.PipeBlocks;
-#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// Provides methods for building exception-handling flow blocks such as try-catch, try-finally, and try-catch-finally.
 /// </summary>

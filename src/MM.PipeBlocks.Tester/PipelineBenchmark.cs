@@ -1,168 +1,123 @@
-﻿//using BenchmarkDotNet.Attributes;
-//using BenchmarkDotNet.Diagnosers;
-//using Microsoft.Extensions.DependencyInjection;
-//using Microsoft.Extensions.Logging;
-//using MM.PipeBlocks.Abstractions;
-//using MM.PipeBlocks.Extensions;
+﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Diagnosers;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Extensions;
 
-//namespace MM.PipeBlocks.Tester;
-//[MemoryDiagnoser]
-//[HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.CacheMisses, HardwareCounter.InstructionRetired)]
-//[DisassemblyDiagnoser(printSource: true)]
-//public class PipelineBenchmark
-//{
-//    private PipeBlock<ICustomValue> _pipe;
-//    private FuncBlock<ICustomValue> _func;
-//    private AsyncFuncBlock<ICustomValue> _asyncFunc;
+namespace MM.PipeBlocks.Tester;
 
-//    [GlobalSetup]
-//    public void Setup()
-//    {
-//        var serviceCollection = new ServiceCollection();
-//        serviceCollection.AddTransient<IBlockResolver<ICustomValue>, ServiceProviderBackedResolver<ICustomValue>>();
-//        serviceCollection.AddTransient<BlockBuilder<ICustomValue>>();
-//        serviceCollection.AddTransient<DummyBlock>();
-//        serviceCollection.AddTransient<CustomCodeBlock>();
-//        serviceCollection.AddLogging(configure =>
-//        {
-//            configure.ClearProviders();
-//            configure.AddConsole();
-//            configure.SetMinimumLevel(LogLevel.Warning);
-//        });
+[MemoryDiagnoser]
+[HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.CacheMisses, HardwareCounter.InstructionRetired)]
+[DisassemblyDiagnoser(printSource: true)]
+public class PipelineBenchmark
+{
+    private PipeBlock<CustomValue1> _pipe;
+    private PipeBlockDelegate<CustomValue1> _func;
+    private PipeBlockAsyncDelegate<CustomValue1> _asyncFunc;
+    private CustomValue1 _value = new()
+    {
+        Count = 57,
+        Name = "Henry"
+    };
 
-//        var serviceProvider = serviceCollection.BuildServiceProvider();
+    [GlobalSetup]
+    public void Setup()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddTransient<IBlockResolver<ICustomValue>, ServiceProviderBackedResolver<ICustomValue>>();
+        serviceCollection.AddTransient<BlockBuilder<CustomValue1>>();
+        serviceCollection.AddTransient<BlockBuilder<CustomValue2>>();
+        serviceCollection.AddTransient<DummyBlock>();
+        serviceCollection.AddTransient<CustomCodeBlock>();
+        serviceCollection.AddLogging(configure =>
+        {
+            configure.ClearProviders();
+            configure.AddConsole();
+            configure.SetMinimumLevel(LogLevel.Warning);
+        });
 
-//        var builder = serviceProvider.GetRequiredService<BlockBuilder<ICustomValue>>();
+        var serviceProvider = serviceCollection.BuildServiceProvider();
 
-//        var adapterPipe = builder.CreatePipe("adapterPipe", builder, new MyAdapter())
-//            .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
-//            ;
+        var builder1 = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
+        var builder2 = serviceProvider.GetRequiredService<BlockBuilder<CustomValue2>>();
 
-//        var startFromPipe = builder.CreatePipe("steppedPipe", c => c.Step)
-//            .Then(builder.Run(c => { var a = 1 + 1; }))
-//            .Then(builder.Run(c => { var a = 1 * 1; }))
-//            .Then(builder.Run(c => { var a = 1 / 1; }))
-//            .Then(builder.Run(c => { var a = 1 - 1; }))
-//            ;
+        var adapterPipe = builder1.CreatePipe("adapterPipe", builder2, new MyAdapter())
+            .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
+            ;
 
-//        _pipe = builder
-//            .CreatePipe("mainPipe")
-//            .Then(startFromPipe)
-//            .Then(b => b.Run(Do))
-//            .Then(b => b.Run(DoAsync))
-//            .Then(b => b.Run(DoAsync2))
-//            .Then(b => b.Run(Fibonnaci))
-//            .Then(b => b.Run(PrimeCheck))
-//            ;
+        var startFromPipe = builder1.CreatePipe("steppedPipe", v => v.Value.Step)
+            .Then(builder1.Run(c => { var a = 1 + 1; }))
+            .Then(builder1.Run(c => { var a = 1 * 1; }))
+            .Then(builder1.Run(c => { var a = 1 / 1; }))
+            .Then(builder1.Run(c => { var a = 1 - 1; }))
+            ;
 
-//        //_func = builder
-//        //    .CreatePipe("compiled sync main pipe")
-//        //    .Then(startFromPipe.CompileSync())
-//        //    .Then(b => b.Run(Do))
-//        //    .Then(b => b.Run(DoAsync))
-//        //    .Then(b => b.Run(DoAsync2))
-//        //    .Then(b => b.Run(Fibonnaci))
-//        //    .Then(b => b.Run(PrimeCheck))
-//        //    .CompileSync();
+        _pipe = builder1
+            .CreatePipe("mainPipe")
+            .Then(startFromPipe)
+            .Then(b => b.Run(Do))
+            .Then(b => b.Run(DoAsync))
+            .Then(b => b.Run(DoAsync2))
+            //.Then(b => b.Run(Fibonnaci))
+            //.Then(b => b.Run(PrimeCheck))
+            ;
 
-//        //_asyncFunc = builder
-//        //    .CreatePipe("compiled async main pipe")
-//        //    .Then(startFromPipe.CompileAsync())
-//        //    .Then(b => b.Run(Do))
-//        //    .Then(b => b.Run(DoAsync))
-//        //    .Then(b => b.Run(DoAsync2))
-//        //    .Then(b => b.Run(Fibonnaci))
-//        //    .Then(b => b.Run(PrimeCheck))
-//        //    .CompileAsync();
-//    }
+        _func = _pipe.ToDelegate();
+        _asyncFunc = _pipe.ToAsyncDelegate();
+    }
 
-//    void Do()
-//    {
-//    }
+    void Do()
+    {
+    }
 
-//    async Task DoAsync()
-//    {
-//        await Task.Delay(0);
-//    }
+    async Task DoAsync()
+    {
+        await Task.Delay(0);
+    }
 
-//    async Task<bool> DoAsync2()
-//    {
-//        await Task.Delay(0);
-//        return false;
-//    }
+    async Task<bool> DoAsync2()
+    {
+        await Task.Delay(0);
+        return false;
+    }
 
-//    void Fibonnaci()
-//    {
-//        int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
-//        var result = Fib(35);
-//    }
+    void Fibonnaci()
+    {
+        int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
+        var result = Fib(35);
+    }
 
-//    void PrimeCheck()
-//    {
-//        bool IsPrime(int n)
-//        {
-//            if (n < 2) return false;
-//            for (int i = 2; i * i <= n; i++)
-//                if (n % i == 0)
-//                    return false;
-//            return true;
-//        }
+    void PrimeCheck()
+    {
+        bool IsPrime(int n)
+        {
+            if (n < 2) return false;
+            for (int i = 2; i * i <= n; i++)
+                if (n % i == 0)
+                    return false;
+            return true;
+        }
 
-//        int count = 0;
-//        for (int i = 2; i < 1_000_000; i++)
-//            if (IsPrime(i))
-//                count++;
-//    }
+        int count = 0;
+        for (int i = 2; i < 1_000_000; i++)
+            if (IsPrime(i))
+                count++;
+    }
 
-//    [Benchmark]
-//    public CustomContext SyncRegularExecution()
-//    {
-//        var ctx = new CustomContext(new CustomValue1
-//        {
-//            Count = 57,
-//            Name = "Henry"
-//        });
+    [Benchmark]
+    public Parameter<CustomValue1> SyncRegularExecution()
+        => _pipe.Execute(_value);
 
-//        _pipe.Execute(ctx);
-//        return ctx;
-//    }
+    [Benchmark]
+    public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution()
+        => await _pipe.ExecuteAsync(_value);
 
-//    [Benchmark]
-//    public async ValueTask<CustomContext> AsyncRegularExecution()
-//    {
-//        var ctx = new CustomContext(new CustomValue1
-//        {
-//            Count = 57,
-//            Name = "Henry"
-//        });
+    [Benchmark]
+    public Parameter<CustomValue1> SyncCompiledExecution()
+        => _func(_value);
 
-//        await _pipe.ExecuteAsync(ctx);
-//        return ctx;
-//    }
-
-//    [Benchmark]
-//    public CustomContext SyncCompiledExecution()
-//    {
-//        var ctx = new CustomContext(new CustomValue1
-//        {
-//            Count = 57,
-//            Name = "Henry"
-//        });
-
-//        _func.Execute(ctx);
-//        return ctx;
-//    }
-
-//    [Benchmark]
-//    public async ValueTask<CustomContext> AsyncCompiledExecution()
-//    {
-//        var ctx = new CustomContext(new CustomValue1
-//        {
-//            Count = 57,
-//            Name = "Henry"
-//        });
-
-//        await _asyncFunc.ExecuteAsync(ctx);
-//        return ctx;
-//    }
-//}
+    [Benchmark]
+    public async ValueTask<Parameter<CustomValue1>> AsyncCompiledExecution()
+        => await _asyncFunc(_value);
+}

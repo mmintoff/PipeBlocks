@@ -5,10 +5,9 @@ using MM.PipeBlocks;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
 using MM.PipeBlocks.Tester;
-using Polly;
-using System;
 
-//BenchmarkRunner.Run<PipelineBenchmark>();
+BenchmarkRunner.Run<PipelineBenchmark>();
+return;
 
 var serviceCollection = new ServiceCollection();
 serviceCollection.AddTransient<IBlockResolver<ICustomValue>, ServiceProviderBackedResolver<ICustomValue>>();
@@ -39,32 +38,50 @@ pipe.Execute(new CustomValue1());
 pipe.Execute(new CustomValue1());
 
 
-//public class MyAdapter : IAdapter<ICustomValue, ICustomValue>
-//{
-//    private CustomContext? _originalContext;
+public class MyAdapter : IAdapter<CustomValue1, CustomValue2>
+{
+    //private CustomContext? _originalContext;
 
-//    public CustomContext2 Adapt(CustomContext from)
-//    {
-//        _originalContext = from;
-//        return new(from.Value)
-//        {
-//            Step = from.Step,
-//            CorrelationId = from.CorrelationId,
-//            Start = DateTime.Now
-//        };
-//    }
+    //public CustomContext2 Adapt(CustomContext from)
+    //{
+    //    _originalContext = from;
+    //    return new(from.Value)
+    //    {
+    //        Step = from.Step,
+    //        CorrelationId = from.CorrelationId,
+    //        Start = DateTime.Now
+    //    };
+    //}
 
-//    public CustomContext Adapt(CustomContext2 from) => _originalContext ?? new(from.Value)
-//    {
-//        Step = from.Step,
-//        CorrelationId = from.CorrelationId
-//    };
+    //public CustomContext Adapt(CustomContext2 from) => _originalContext ?? new(from.Value)
+    //{
+    //    Step = from.Step,
+    //    CorrelationId = from.CorrelationId
+    //};
+    public Parameter<CustomValue2> Adapt(Parameter<CustomValue1> from)
+        => new(new CustomValue2
+            {
+                Count = from.Match(_ => 0, x => x.Count),
+                Address = string.Empty,
+                Start = DateTime.Now,
+                Step = from.Match(_ => 0, x => x.Step)
+            })
+            {
+                Context = from.Context
+            };
 
-//    public Parameter<ICustomValue> Adapt(Parameter<ICustomValue> from)
-//    {
-//        throw new NotImplementedException();
-//    }
-//}
+    public Parameter<CustomValue1> Adapt(Parameter<CustomValue2> from)
+        => new(new CustomValue1
+            {
+                Count = from.Match(_ => 0, x => x.Count),
+                Name = string.Empty,
+                Start = from.Match(_ => DateTime.MinValue, x => x.Start),
+                Step = from.Match(_ => 0, x => x.Step)
+            })
+            {
+                Context = from.Context
+            };
+}
 
 public class DummyBlock : ISyncBlock<ICustomValue>
 {

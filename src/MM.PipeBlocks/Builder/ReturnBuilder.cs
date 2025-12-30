@@ -1,8 +1,6 @@
 ﻿using MM.PipeBlocks.Abstractions;
 
-#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace MM.PipeBlocks;
-#pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
 /// A fluent builder for composing pipeline blocks that can control flow,
 /// return early, or do nothing (no-op).
@@ -13,7 +11,7 @@ public partial class BlockBuilder<V>
     /// Creates a no-operation block that simply returns the input context unchanged.
     /// </summary>
     /// <returns>
-    /// A new instance of <see cref="NoopBlock{C, V}"/> that performs no action.
+    /// A new instance of <see cref="NoopBlock{V}"/> that performs no action.
     /// </returns>
     public NoopBlock<V> Noop() => new();
 
@@ -21,7 +19,7 @@ public partial class BlockBuilder<V>
     /// Creates a return block that returns the input context unchanged.
     /// </summary>
     /// <returns>
-    /// A new instance of <see cref="ReturnBlock{C, V}"/> that returns the same context without modification.
+    /// A new instance of <see cref="ReturnBlock{V}"/> that returns the same context without modification.
     /// </returns>
     public ReturnBlock<V> Return() => new(CreateLogger<ReturnBlock<V>>(), v => v);
 
@@ -30,7 +28,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="doThis">An action to be performed on the context.</param>
     /// <returns>
-    /// A new instance of <see cref="ReturnBlock{C, V}"/> that runs the specified action and returns the modified context.
+    /// A new instance of <see cref="ReturnBlock{V}"/> that runs the specified action and returns the modified context.
     /// </returns>
     public ReturnBlock<V> Return(Action<Parameter<V>> doThis)
         => Return(value =>
@@ -44,7 +42,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="doThis">A function that transforms the context.</param>
     /// <returns>
-    /// A new instance of <see cref="ReturnBlock{C, V}"/> that returns the result of the transformation.
+    /// A new instance of <see cref="ReturnBlock{V}"/> that returns the result of the transformation.
     /// </returns>
     public ReturnBlock<V> Return(Func<Parameter<V>, Parameter<V>> doThis)
         => new(CreateLogger<ReturnBlock<V>>(), doThis);
@@ -54,7 +52,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="doThis">An asynchronous function to be executed on the context.</param>
     /// <returns>
-    /// A new instance of <see cref="ReturnBlock{C, V}"/> that awaits the specified action and then returns the context.
+    /// A new instance of <see cref="ReturnBlock{V}"/> that awaits the specified action and then returns the context.
     /// </returns>
     public ReturnBlock<V> Return(Func<Parameter<V>, ValueTask> doThis)
         => Return(async value =>
@@ -68,7 +66,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="doThis">An asynchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="ReturnBlock{C, V}"/> that executes the asynchronous transformation.
+    /// A new instance of <see cref="ReturnBlock{V}"/> that executes the asynchronous transformation.
     /// </returns>
     public ReturnBlock<V> Return(Func<Parameter<V>, ValueTask<Parameter<V>>> doThis)
         => new(CreateLogger<ReturnBlock<V>>(), doThis);
@@ -78,7 +76,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="condition">A predicate that determines whether the action should be executed.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies a no-op if the condition is true.
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies a no-op if the condition is true.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, bool> condition)
         => ReturnIf(condition, value => value);
@@ -89,7 +87,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">A predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">An action to be executed on the context if the condition is true.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the action and returns the context if the condition is true,
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the action and returns the context if the condition is true,
     /// or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, bool> condition, Action<Parameter<V>> doThis)
@@ -102,7 +100,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">A predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">A synchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the synchronous transformation and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, bool> condition, Func<Parameter<V>, Parameter<V>> doThis)
@@ -115,7 +113,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">A predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">An asynchronous function that takes the context and performs an action, but returns the context unchanged.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the asynchronous action and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, bool> condition, Func<Parameter<V>, ValueTask> doThis)
@@ -132,7 +130,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">A predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">An asynchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the asynchronous transformation and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, bool> condition, Func<Parameter<V>, ValueTask<Parameter<V>>> doThis)
@@ -146,7 +144,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">A synchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous action and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the synchronous action and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, ValueTask<bool>> condition, Action<Parameter<V>> doThis)
@@ -163,7 +161,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">A synchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the synchronous transformation and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the synchronous transformation and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, ValueTask<bool>> condition, Func<Parameter<V>, Parameter<V>> doThis)
@@ -176,7 +174,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">An asynchronous function that takes the context and performs an action, but returns the context unchanged.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous action and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the asynchronous action and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, ValueTask<bool>> condition, Func<Parameter<V>, ValueTask> doThis)
@@ -193,7 +191,7 @@ public partial class BlockBuilder<V>
     /// <param name="condition">An asynchronous predicate that determines whether the action should be executed.</param>
     /// <param name="doThis">An asynchronous function that takes the context and returns a modified context.</param>
     /// <returns>
-    /// A new instance of <see cref="BranchBlock{C, V}"/> that applies the asynchronous transformation and returns the context
+    /// A new instance of <see cref="BranchBlock{V}"/> that applies the asynchronous transformation and returns the context
     /// if the condition is true, or performs no operation otherwise.
     /// </returns>
     public BranchBlock<V> ReturnIf(Func<Parameter<V>, ValueTask<bool>> condition, Func<Parameter<V>, ValueTask<Parameter<V>>> doThis)

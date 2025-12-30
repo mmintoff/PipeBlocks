@@ -16,6 +16,7 @@ public static class BlockExecutor
     /// <param name="block">The block to execute.</param>
     /// <param name="value">The current execution parameter.</param>
     /// <returns>The updated execution parameter.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Parameter<V> ExecuteSync<V>(IBlock<V> block, Parameter<V> value)
         => block switch
         {
@@ -32,6 +33,7 @@ public static class BlockExecutor
     /// <param name="block">The block to execute.</param>
     /// <param name="value">The current execution parameter.</param>
     /// <returns>A task that represents the asynchronous operation, containing the updated execution parameter.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ValueTask<Parameter<V>> ExecuteAsync<V>(IBlock<V> block, Parameter<V> value)
     {
         var result = block switch
@@ -46,27 +48,13 @@ public static class BlockExecutor
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Parameter<V> ExecuteValueTaskSynchronously<V>(ValueTask<Parameter<V>> task)
-        => task.IsCompleted ? task.Result : AsyncContext.Run(task.AsTask);
+    {
+        if (task.IsCompletedSuccessfully)
+            return task.Result;
 
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //private static Parameter<V> ExecuteValueTaskSynchronously<V>(ValueTask<Parameter<V>> task)
-    //{
-    //    if (task.IsCompleted)
-    //        return task.Result;
+        if (task.IsCompleted)
+            return task.GetAwaiter().GetResult();
 
-    //    var snapshot = Context.Capture();
-    //    ContextSnapshot? innerSnapshot = null;
-
-    //    var result = AsyncContext.Run(async () =>
-    //    {
-    //        snapshot.Apply();
-    //        var r = await task;
-    //        innerSnapshot = Context.Capture();
-    //        return r;
-    //    });
-
-    //    innerSnapshot?.Apply();
-
-    //    return result;
-    //}
+        return AsyncContext.Run(() => task.AsTask());
+    }
 }

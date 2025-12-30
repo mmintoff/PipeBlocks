@@ -1,5 +1,4 @@
 ﻿using MM.PipeBlocks.Abstractions;
-using MM.PipeBlocks.Internal;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace MM.PipeBlocks;
@@ -25,7 +24,7 @@ public abstract class CodeBlock<V> : ISyncBlock<V>
     /// <summary>
     /// Override this method to implement logic using the value within the parameter.
     /// </summary>
-    /// <param name="value">The parameter for execution.</param>
+    /// <param name="parameter">The parameter for execution.</param>
     /// <param name="extractedValue">The value extracted from the parameter.</param>
     /// <returns>The updated parameter.</returns>
     protected abstract Parameter<V> Execute(Parameter<V> parameter, V extractedValue);
@@ -51,7 +50,7 @@ public abstract class AsyncCodeBlock<V> : IAsyncBlock<V>
     /// <summary>
     /// Override this method to implement asynchronous logic using the value within the parameter.
     /// </summary>
-    /// <param name="value">The parameter for execution.</param>
+    /// <param name="parameter">The parameter for execution.</param>
     /// <param name="extractedValue">The value extracted from the parameter.</param>
     /// <returns>A <see cref="ValueTask{T}"/> representing the result of the asynchronous operation.</returns>
     protected abstract ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> parameter, V extractedValue);
