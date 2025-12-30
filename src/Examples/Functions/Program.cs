@@ -1,6 +1,5 @@
 ﻿using Functions;
 using MM.PipeBlocks;
-using MM.PipeBlocks.Abstractions;
 
 var builder = new BlockBuilder<MyValue>();
 var pipe = builder.CreatePipe("func pipe")

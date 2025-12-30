@@ -2,8 +2,8 @@
 using MM.PipeBlocks.Extensions;
 using StartFrom;
 
-var builder = new BlockBuilder<MyContext, MyValue>();
-var pipe = builder.CreatePipe("startfrom pipe", c => c.Step)
+var builder = new BlockBuilder<MyValue>();
+var pipe = builder.CreatePipe("startfrom pipe", v => v.Context.Get<int>("Step"))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓░░░░░░░░] 20%")))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓▓▓░░░░░░] 40%")))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓▓▓▓▓░░░░] 60%")))
@@ -13,12 +13,12 @@ var pipe = builder.CreatePipe("startfrom pipe", c => c.Step)
 
 for (int i = 0; i < 5; i++)
 {
-    var result = pipe.Execute(new MyContext(new MyValue())
+    var result = pipe.Execute(new MyValue(), ctx =>
     {
-        Step = i
+        ctx.Set("Step", i);
     });
 
-    result.Value.Match(
+    result.Match(
         failure =>
         {
             Console.ForegroundColor = ConsoleColor.Red;
