@@ -8,27 +8,25 @@ namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that wraps another block with retry behaviours.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-public sealed class RetryBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
 {
-    private readonly IBlock<C, V> _block;
-    private readonly RetryPolicy<C> _retryPolicy;
-    private readonly AsyncRetryPolicy<C> _asyncRetryPolicy;
+    private readonly IBlock<V> _block;
+    private readonly RetryPolicy<Parameter<V>> _retryPolicy;
+    private readonly AsyncRetryPolicy<Parameter<V>> _asyncRetryPolicy;
 
-    private readonly ExceptionHandler<C, V> _exceptionHandler;
+    private readonly ExceptionHandler<V> _exceptionHandler;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RetryBlock{C, V}"/> class.
+    /// Initializes a new instance of the <see cref="RetryBlock{V}"/> class.
     /// </summary>
     /// <param name="block">The block to be executed with retry logic.</param>
     /// <param name="delays">A sequence of retry delays.</param>
     /// <param name="exceptionHandler">The handler to be invoked when an exception occurs.</param>
     public RetryBlock(
-        IBlock<C, V> block,
+        IBlock<V> block,
         IEnumerable<TimeSpan> delays,
-        ExceptionHandler<C, V> exceptionHandler)
+        ExceptionHandler<V> exceptionHandler)
     {
         _block = block;
         _exceptionHandler = exceptionHandler;
@@ -37,90 +35,73 @@ public sealed class RetryBlock<C, V> : ISyncBlock<C, V>, IAsyncBlock<C, V>
 
         _retryPolicy = Policy
             .Handle<Exception>()
-            .OrResult<C>(ShouldRetry)
+            .OrResult<Parameter<V>>(ShouldRetry)
             .WaitAndRetry(delaysArray);
 
         _asyncRetryPolicy = Policy
             .Handle<Exception>()
-            .OrResult<C>(ShouldRetry)
+            .OrResult<Parameter<V>>(ShouldRetry)
             .WaitAndRetryAsync(delaysArray);
     }
 
-    public C Execute(C context) => context.Value.Match(
-        x => context.IsFlipped ? Execute(context, x.Value) : context,
-        x => Execute(context, x));
+    public Parameter<V> Execute(Parameter<V> value) => value.Match(
+        x => value.Context.IsFlipped ? ExecuteRetry(x.Value) : value,
+        x => ExecuteRetry(value));
 
-    public ValueTask<C> ExecuteAsync(C context) => context.Value.Match(
-        x => context.IsFlipped ? ExecuteAsync(context, x.Value) : ValueTask.FromResult(context),
-        x => ExecuteAsync(context, x));
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
+        x => value.Context.IsFlipped ? ExecuteRetryAsync(x.Value) : ValueTask.FromResult(value),
+        x => ExecuteRetryAsync(value));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private C Execute(C context, V value)
+    private Parameter<V> ExecuteRetry(Parameter<V> value)
     {
-        var localContext = context;
         var localValue = value;
 
         try
         {
-            return _retryPolicy.Execute(() =>
-            {
-                localContext.IsFinished = false;
-                localContext.Value = value;
-
-                return BlockExecutor.ExecuteSync(_block, localContext);
-            });
+            return _retryPolicy.Execute(() => BlockExecutor.ExecuteSync(_block, localValue));
         }
         catch (Exception ex)
         {
-            _exceptionHandler(context, value, ex);
-            return localContext;
+            _exceptionHandler(value, ex);
+            return localValue;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private async ValueTask<C> ExecuteAsync(C context, V value)
+    private async ValueTask<Parameter<V>> ExecuteRetryAsync(Parameter<V> value)
     {
-        var localContext = context;
         var localValue = value;
-
         try
         {
-            return await _asyncRetryPolicy.ExecuteAsync(async () =>
-            {
-                localContext.IsFinished = false;
-                localContext.Value = value;
-
-                return await BlockExecutor.ExecuteAsync(_block, localContext);
-            });
+            return await _asyncRetryPolicy.ExecuteAsync(async () => await BlockExecutor.ExecuteAsync(_block, localValue));
         }
         catch (Exception ex)
         {
-            _exceptionHandler(context, value, ex);
-            return localContext;
+            _exceptionHandler(value, ex);
+            return localValue;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool ShouldRetry(C context) => context.Value.Match(
+    private static bool ShouldRetry(Parameter<V> value) => value.Match(
         static _ => true,
         static _ => false);
 }
 
 /// <summary>
-/// A builder class for constructing <see cref="RetryBlock{C, V}"/> instances.
+/// A builder class for constructing <see cref="RetryBlock{V}"/> instances.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
-public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
-    where C : IContext<V>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
+public class RetryBuilder<V>(BlockBuilder<V> blockBuilder)
 {
     /// <summary>
     /// Creates a retry block
     /// </summary>
     /// <typeparam name="X">Block type to be retried</typeparam>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>()
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>()
+        where X : IBlock<V>
         => Execute(blockBuilder.ResolveInstance<X>());
 
     /// <summary>
@@ -129,8 +110,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <typeparam name="X">Block type to be retried</typeparam>
     /// <param name="exceptionHandler">Delegate to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(ExceptionHandler<C, V> exceptionHandler)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(ExceptionHandler<V> exceptionHandler)
+        where X : IBlock<V>
         => Execute(blockBuilder.ResolveInstance<X>(),
             exceptionHandler);
 
@@ -141,8 +122,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <param name="exceptionHandler">Delegate to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(int retryCount, ExceptionHandler<C, V> exceptionHandler)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(int retryCount, ExceptionHandler<V> exceptionHandler)
+        where X : IBlock<V>
         => Execute(
             blockBuilder.ResolveInstance<X>(),
             retryCount,
@@ -154,8 +135,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <typeparam name="X">Block type to be retried</typeparam>
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(int retryCount)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(int retryCount)
+        where X : IBlock<V>
         => Execute(
             blockBuilder.ResolveInstance<X>(),
             retryCount,
@@ -168,8 +149,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="delays">Timespans to delay on retry</param>
     /// <param name="exceptionHandler">Delegate to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(IEnumerable<TimeSpan> delays, ExceptionHandler<C, V> exceptionHandler)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(IEnumerable<TimeSpan> delays, ExceptionHandler<V> exceptionHandler)
+        where X : IBlock<V>
         => Execute(
             blockBuilder.ResolveInstance<X>(),
             delays,
@@ -182,8 +163,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <param name="delay">Delay to use for each attempt</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(int retryCount, TimeSpan delay)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(int retryCount, TimeSpan delay)
+        where X : IBlock<V>
         => Execute(
             blockBuilder.ResolveInstance<X>(),
             Enumerable.Repeat(delay, retryCount),
@@ -195,8 +176,8 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <typeparam name="X">Block type to be retried</typeparam>
     /// <param name="delays">Timespans to delay on retry</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute<X>(IEnumerable<TimeSpan> delays)
-        where X : IBlock<C, V>
+    public RetryBlock<V> Execute<X>(IEnumerable<TimeSpan> delays)
+        where X : IBlock<V>
         => Execute(
             blockBuilder.ResolveInstance<X>(),
             delays,
@@ -208,7 +189,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="block">Block to be retried</param>
     /// <param name="exceptionHandler">Delegate to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, ExceptionHandler<C, V> exceptionHandler)
+    public RetryBlock<V> Execute(IBlock<V> block, ExceptionHandler<V> exceptionHandler)
         => new(
             block,
             Retries(),
@@ -219,7 +200,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// </summary>
     /// <param name="block">Block to be retried</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block)
+    public RetryBlock<V> Execute(IBlock<V> block)
         => Execute(
             block,
             _defaultExceptionHandler);
@@ -231,7 +212,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <param name="exceptionHandler">Delegate to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, int retryCount, ExceptionHandler<C, V> exceptionHandler)
+    public RetryBlock<V> Execute(IBlock<V> block, int retryCount, ExceptionHandler<V> exceptionHandler)
         => new(
             block,
             Retries(retryCount),
@@ -243,7 +224,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="block">Block to be retried</param>
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, int retryCount)
+    public RetryBlock<V> Execute(IBlock<V> block, int retryCount)
         => Execute(
             block,
             retryCount,
@@ -257,7 +238,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="delays">Timespans to delay on retry</param>
     /// <param name="exceptionHandler">Action to process unhandled exception after all retries have been attempted</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, IEnumerable<TimeSpan> delays, ExceptionHandler<C, V> exceptionHandler)
+    public RetryBlock<V> Execute(IBlock<V> block, IEnumerable<TimeSpan> delays, ExceptionHandler<V> exceptionHandler)
         => new(
             block,
             delays,
@@ -270,7 +251,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="retryCount">Number of attempts to make with DecorrelatedJitterBackoffV2</param>
     /// <param name="delay">Delay to use for each attempt</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, int retryCount, TimeSpan delay)
+    public RetryBlock<V> Execute(IBlock<V> block, int retryCount, TimeSpan delay)
         => Execute(
             block,
             Enumerable.Repeat(delay, retryCount),
@@ -282,7 +263,7 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
     /// <param name="block">Block to be retried</param>
     /// <param name="delays">Timespans to delay on retry</param>
     /// <returns>RetryBlock</returns>
-    public RetryBlock<C, V> Execute(IBlock<C, V> block, IEnumerable<TimeSpan> delays)
+    public RetryBlock<V> Execute(IBlock<V> block, IEnumerable<TimeSpan> delays)
         => Execute(
             block,
             delays,
@@ -293,32 +274,27 @@ public class RetryBuilder<C, V>(BlockBuilder<C, V> blockBuilder)
             medianFirstRetryDelay: TimeSpan.FromSeconds(1),
             retryCount: retryCount);
 
-    private static readonly ExceptionHandler<C, V> _defaultExceptionHandler = (c, v, e) =>
-        c.SignalBreak(new DefaultFailureState<V>(v)
+    private static readonly ExceptionHandler<V> _defaultExceptionHandler = (v, e) =>
+        v.SignalBreak(new DefaultFailureState<V>(v.Value)
         {
             FailureReason = e.Message,
-            CorrelationId = c.CorrelationId
+            CorrelationId = v.Context.CorrelationId
         });
 }
 
 /// <summary>
-/// Extension methods for the <see cref="BlockBuilder{C, V}"/> to add retry capabilities.
+/// Extension methods for the <see cref="BlockBuilder{V}"/> to add retry capabilities.
 /// </summary>
 public static partial class BuilderExtensions
 {
-    public static RetryBuilder<C, V> Retry<C, V>(this BlockBuilder<C, V> builder)
-        where C : IContext<V>
+    public static RetryBuilder<V> Retry<V>(this BlockBuilder<V> builder)
         => new(builder);
 }
 
 /// <summary>
 /// Delegate representing an exception handler for a block.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
 /// <typeparam name="V">The value type.</typeparam>
-/// <param name="context">The current context.</param>
-/// <param name="value">The input value being processed.</param>
+/// <param name="value">The current parameter.</param>
 /// <param name="exception">The exception that occurred.</param>
-public delegate void ExceptionHandler<C, V>(C context, V value, Exception exception)
-    where C : IContext<V>
-    ;
+public delegate void ExceptionHandler<V>(Parameter<V> value, Exception exception);

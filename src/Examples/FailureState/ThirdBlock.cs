@@ -1,12 +1,13 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace FailureState;
-public class ThirdBlock : CodeBlock<MyContextType, MyValueType>
+public class ThirdBlock : CodeBlock<MyValueType>
 {
-    protected override MyContextType Execute(MyContextType context, MyValueType value)
+    protected override Parameter<MyValueType> Execute(Parameter<MyValueType> parameter, MyValueType value)
     {
         Console.WriteLine($"Executing {nameof(ThirdBlock)}");
         value.Counter++;
-        return context;
+        return parameter;
     }
 }

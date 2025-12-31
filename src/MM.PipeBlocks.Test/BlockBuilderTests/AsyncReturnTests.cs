@@ -1,240 +1,193 @@
 ﻿using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test.BlockBuilderTests;
+
 public class AsyncReturnTests
 {
-    private readonly BlockBuilder<MyContext, MyValue> _blockBuilder = new();
+    private readonly BlockBuilder<MyValue> _blockBuilder = new();
 
-    private void AssertIsReturnBlock(IBlock<MyContext, MyValue> block)
+    private void AssertIsReturnBlock(IBlock<MyValue> block)
     {
-        Assert.IsType<ReturnBlock<MyContext, MyValue>>(block);
+        Assert.IsType<ReturnBlock<MyValue>>(block);
     }
 
-    private void AssertIsBranchBlock(IBlock<MyContext, MyValue> block)
+    private void AssertIsBranchBlock(IBlock<MyValue> block)
     {
-        Assert.IsType<BranchBlock<MyContext, MyValue>>(block);
+        Assert.IsType<BranchBlock<MyValue>>(block);
     }
 
     [Fact]
     public async Task Noop()
     {
         var block = _blockBuilder.Noop();
-        
-        Assert.IsType<NoopBlock<MyContext, MyValue>>(block);
+
+        Assert.IsType<NoopBlock<MyValue>>(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(initialValue);
+        var value = new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
+        var result = await block.ExecuteAsync(value);
+        result.Match(
             f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
-            s => Assert.Equal(context.CorrelationId, result.CorrelationId));
+            s => Assert.Equal(value.CorrelationId, result.CorrelationId));
     }
 
     [Fact]
-    public async Task Return_C()
+    public async Task Return_V()
     {
         var block = _blockBuilder.Return();
 
         AssertIsReturnBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(initialValue);
+        var value = new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
+        var result = await block.ExecuteAsync(value);
+        result.Match(
             f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
-            s => Assert.Equal(context.CorrelationId, result.CorrelationId));
+            s => Assert.Equal(value.CorrelationId, result.CorrelationId));
     }
 
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 1)]
-    public async Task Return_C_Action(bool isFinished, int expected)
+    public async Task Return_V_Action(bool isFinished, int expected)
     {
-        var block = _blockBuilder.Return(c =>
+        var block = _blockBuilder.Return(v =>
         {
-            c.Counter++;
+            v.Context.Increment<int>("Counter");
         });
 
         AssertIsReturnBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
+        var pipe = _blockBuilder.CreatePipe("Return_V_Action")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
             s =>
             {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
+                Assert.Equal(expected, result.Context.Get<int>("Counter"));
+                Assert.True(result.Context.IsFinished);
             });
     }
 
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 1)]
-    public async Task Return_C_Func_C(bool isFinished, int expected)
+    public async Task Return_V_Func_V(bool isFinished, int expected)
     {
-        var block = _blockBuilder.Return(c =>
+        var block = _blockBuilder.Return(v =>
         {
-            c.Counter++;
-            return c;
+            v.Context.Increment<int>("Counter");
+            return v;
         });
 
         AssertIsReturnBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
+        var pipe = _blockBuilder.CreatePipe("Return_V_Func_V")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
             s =>
             {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
+                Assert.Equal(expected, result.Context.Get<int>("Counter"));
+                Assert.True(result.Context.IsFinished);
             });
     }
 
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 1)]
-    public async Task Return_CV_Func_C(bool isFinished, int expected)
+    public async Task Return_V_Func_ValueTask(bool isFinished, int expected)
     {
-        var block = _blockBuilder.Return((c, v) =>
+        var block = _blockBuilder.Return(async v =>
         {
-            c.Counter++;
-            return c;
+            v.Context.Increment<int>("Counter");
+            await ValueTask.CompletedTask;
         });
 
         AssertIsReturnBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
+        var pipe = _blockBuilder.CreatePipe("Return_V_Func_ValueTask")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
             s =>
             {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
+                Assert.Equal(expected, result.Context.Get<int>("Counter"));
+                Assert.True(result.Context.IsFinished);
             });
     }
 
     [Theory]
     [InlineData(true, 0)]
     [InlineData(false, 1)]
-    public async Task Return_C_Func_ValueTask(bool isFinished, int expected)
+    public async Task Return_V_Func_ValueTask_V(bool isFinished, int expected)
     {
-        var block = _blockBuilder.Return(c =>
+        var block = _blockBuilder.Return(v =>
         {
-            c.Counter++;
-            return ValueTask.CompletedTask;
+            v.Context.Increment<int>("Counter");
+            return ValueTask.FromResult(v);
         });
 
         AssertIsReturnBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s =>
-            {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
-            });
-    }
+        var pipe = _blockBuilder.CreatePipe("Return_V_Func_ValueTask_V")
+            .Then(block)
+            ;
 
-    [Theory]
-    [InlineData(true, 0)]
-    [InlineData(false, 1)]
-    public async Task Return_C_Func_ValueTask_C(bool isFinished, int expected)
-    {
-        var block = _blockBuilder.Return(c =>
+        var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            c.Counter++;
-            return ValueTask.FromResult(c);
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
         });
-
-        AssertIsReturnBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
             s =>
             {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
-            });
-    }
-
-    [Theory]
-    [InlineData(true, 0)]
-    [InlineData(false, 1)]
-    public async Task Return_CV_Func_ValueTask_C(bool isFinished, int expected)
-    {
-        var block = _blockBuilder.Return((c, v) =>
-        {
-            c.Counter++;
-            return ValueTask.FromResult(c);
-        });
-
-        AssertIsReturnBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s =>
-            {
-                Assert.Equal(expected, context.Counter);
-                Assert.True(context.IsFinished);
+                Assert.Equal(expected, result.Context.Get<int>("Counter"));
+                Assert.True(result.Context.IsFinished);
             });
     }
 
@@ -243,30 +196,31 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 0)] // Will return, therefore will not increment
     [InlineData(false, false, 1)] // Will not return, therefore will increment
-    public async Task ReturnIf_C(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_V(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition);
+        var block = _blockBuilder.ReturnIf(v => condition);
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_V")
             .Then(block)
-            .Then(b => b.Run(c => c.Counter++))
+            .Then(b => b.Run(v => v.Context.Increment<int>("Counter")))
             ;
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await pipe.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -274,25 +228,29 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_C_Action(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_V_Action(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, c => c.Counter++);
+        var block = _blockBuilder.ReturnIf(v => condition, v => v.Context.Increment<int>("Counter"));
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Action")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -300,55 +258,33 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_CV_Action(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_V_Func_V(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, (c, v) => c.Counter++);
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
+        var block = _blockBuilder.ReturnIf(v => condition, v =>
         {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_C_Func_C(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => condition, c =>
-        {
-            c.Counter++;
-            return c;
+            v.Context.Increment<int>("Counter");
+            return v;
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                    ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                    : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_V")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -356,29 +292,33 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_CV_Func_C(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_V_Func_ValueTask(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, (c, v) =>
+        var block = _blockBuilder.ReturnIf(v => condition, async v =>
         {
-            c.Counter++;
-            return c;
+            v.Context.Increment<int>("Counter");
+            await ValueTask.CompletedTask;
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                    ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                    : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_ValueTask")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -386,29 +326,33 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_C_Func_ValueTask(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_V_Func_ValueTask_V(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, c =>
+        var block = _blockBuilder.ReturnIf(v => condition, v =>
         {
-            c.Counter++;
-            return ValueTask.CompletedTask;
+            v.Context.Increment<int>("Counter");
+            return ValueTask.FromResult(v);
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
+        var value = isFinished
+                            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                            : new Parameter<MyValue>(initialValue);
+
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_ValueTask_V")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-        
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -416,29 +360,32 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_CV_Func_ValueTask(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_Async_V_Action(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, (c, v) =>
+        var block = _blockBuilder.ReturnIf(v => ValueTask.FromResult(condition), v =>
         {
-            c.Counter++;
-            return ValueTask.CompletedTask;
+            v.Context.Increment<int>("Counter");
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Action")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -446,29 +393,33 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_C_Func_ValueTask_C(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_Async_V_Func_V(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, c =>
+        var block = _blockBuilder.ReturnIf(v => ValueTask.FromResult(condition), v =>
         {
-            c.Counter++;
-            return ValueTask.FromResult(c);
+            v.Context.Increment<int>("Counter");
+            return v;
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_V")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -476,29 +427,33 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_CV_Func_ValueTask_C(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_Async_V_Func_ValueTask(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => condition, (c, v) =>
+        var block = _blockBuilder.ReturnIf(v => ValueTask.FromResult(condition), async v =>
         {
-            c.Counter++;
-            return ValueTask.FromResult(c);
+            v.Context.Increment<int>("Counter");
+            await ValueTask.CompletedTask;
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_ValueTask")
+            .Then(block)
+            ;
+
+        var result = await pipe.ExecuteAsync(value, ctx =>
+        {
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
+        });
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 
     [Theory]
@@ -506,236 +461,32 @@ public class AsyncReturnTests
     [InlineData(true, false, 0)] // Auto-fail
     [InlineData(false, true, 1)] // Will return, therefore will increment
     [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_C_Action(bool isFinished, bool condition, int expected)
+    public async Task ReturnIf_Async_V_Func_ValueTask_V(bool isFinished, bool condition, int expected)
     {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), c =>
+        var block = _blockBuilder.ReturnIf(v => ValueTask.FromResult(condition), v =>
         {
-            c.Counter++;
+            v.Context.Increment<int>("Counter");
+            return ValueTask.FromResult(v);
         });
 
         AssertIsBranchBlock(block);
 
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
+        var value = isFinished
+                            ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
+                            : new Parameter<MyValue>(initialValue);
 
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
+        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_ValueTask")
+            .Then(block)
+            ;
 
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_CV_Action(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), (c, v) =>
+        var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            c.Counter++;
+            ctx.IsFinished = isFinished;
+            ctx.Set("Counter", 0);
         });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_C_Func_C(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), c =>
-        {
-            c.Counter++;
-            return c;
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_CV_Func_C(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), (c, v) =>
-        {
-            c.Counter++;
-            return c;
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_C_Func_ValueTask(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), c =>
-        {
-            c.Counter++;
-            return ValueTask.CompletedTask;
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_CV_Func_ValueTask(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), (c, v) =>
-        {
-            c.Counter++;
-            return ValueTask.CompletedTask;
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_C_Func_ValueTask_C(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), c =>
-        {
-            c.Counter++;
-            return ValueTask.FromResult(c);
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
-    }
-
-    [Theory]
-    [InlineData(true, true, 0)] // Auto-fail
-    [InlineData(true, false, 0)] // Auto-fail
-    [InlineData(false, true, 1)] // Will return, therefore will increment
-    [InlineData(false, false, 0)] // Will not return, therefore will not increment
-    public async Task ReturnIf_Async_CV_Func_ValueTask_C(bool isFinished, bool condition, int expected)
-    {
-        var block = _blockBuilder.ReturnIf(c => ValueTask.FromResult(condition), (c, v) =>
-        {
-            c.Counter++;
-            return ValueTask.FromResult(c);
-        });
-
-        AssertIsBranchBlock(block);
-
-        var initialValue = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(new MyValue())
-        {
-            Value = isFinished
-                ? new Either<IFailureState<MyValue>, MyValue>(new DefaultFailureState<MyValue>(initialValue))
-                : new Either<IFailureState<MyValue>, MyValue>(initialValue),
-            IsFinished = isFinished
-        };
-
-        var result = await block.ExecuteAsync(context);
-        result.Value.Match(
-            f => Assert.Equal(expected, context.Counter),
-            s => Assert.Equal(expected, context.Counter));
+        result.Match(
+            f => Assert.Equal(expected, result.Context.Get<int>("Counter")),
+            s => Assert.Equal(expected, result.Context.Get<int>("Counter")));
     }
 }

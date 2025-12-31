@@ -1,13 +1,16 @@
 ﻿using Functions;
 using MM.PipeBlocks;
 
-var builder = new BlockBuilder<MyContext, MyValue>();
+var builder = new BlockBuilder<MyValue>();
 var pipe = builder.CreatePipe("func pipe")
-            .Then(b => b.Run((c, v) => v.Fibonacci = Fibonacci(c.N)))
+            .Then(b => b.Run(v => v.Value.Fibonacci = Fibonacci(v.Context.Get<int>("N"))))
             ;
 
-var result = pipe.Execute(new MyContext(new MyValue()) { N = 35 });
-result.Value.Match(
+var result = pipe.Execute(new MyValue(), ctx =>
+{
+    ctx.Set("N", 35);
+});
+result.Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;

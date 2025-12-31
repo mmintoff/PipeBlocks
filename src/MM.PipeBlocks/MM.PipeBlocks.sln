@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.11.35431.28
+# Visual Studio Version 18
+VisualStudioVersion = 18.3.11312.210 d18.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM.PipeBlocks", "MM.PipeBlocks.csproj", "{9AF183AC-3F03-45EB-9EF6-8C7B7CF5492F}"
 EndProject
@@ -30,6 +30,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM.PipeBlocks.Test", "..\MM.PipeBlocks.Test\MM.PipeBlocks.Test.csproj", "{CBA5089F-0AF4-45BD-8097-9A2FF400D669}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reusable", "..\Examples\Reusable\Reusable.csproj", "{7E82EB4A-86C2-B697-E796-0D7BF5A9695F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM.PipeBlocks.Extensions.DependencyInjection", "..\MM.PipeBlocks.Extensions.DependencyInjection\MM.PipeBlocks.Extensions.DependencyInjection.csproj", "{F841766D-69A5-4ABC-8CE0-814ADCB700D7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,6 +91,10 @@ Global
 		{7E82EB4A-86C2-B697-E796-0D7BF5A9695F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E82EB4A-86C2-B697-E796-0D7BF5A9695F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E82EB4A-86C2-B697-E796-0D7BF5A9695F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

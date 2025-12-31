@@ -4,27 +4,32 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 
 namespace MM.PipeBlocks.Tester;
+
 [MemoryDiagnoser]
 [HardwareCounters(HardwareCounter.BranchMispredictions, HardwareCounter.CacheMisses, HardwareCounter.InstructionRetired)]
 [DisassemblyDiagnoser(printSource: true)]
 public class PipelineBenchmark
 {
-    private PipeBlock<CustomContext, ICustomValue> _pipe;
-    private FuncBlock<CustomContext, ICustomValue> _func;
-    private AsyncFuncBlock<CustomContext, ICustomValue> _asyncFunc;
+    private IPipeBlock<CustomValue1> _pipe;
+    private CustomValue1 _value = new()
+    {
+        Count = 57,
+        Name = "Henry"
+    };
 
     [GlobalSetup]
     public void Setup()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTransient<IBlockResolver<CustomContext, ICustomValue>, ServiceProviderBackedResolver<CustomContext, ICustomValue>>();
-        serviceCollection.AddTransient<IBlockResolver<CustomContext2, ICustomValue>, ServiceProviderBackedResolver<CustomContext2, ICustomValue>>();
-        serviceCollection.AddTransient<BlockBuilder<CustomContext, ICustomValue>>();
-        serviceCollection.AddTransient<BlockBuilder<CustomContext2, ICustomValue>>();
-        serviceCollection.AddTransient<DummyBlock>();
-        serviceCollection.AddTransient<CustomCodeBlock>();
+
+        serviceCollection.AddPipeBlocks()
+            .AddTransientBlock<DummyBlock>()
+            .AddTransientBlock<CustomCodeBlock>()
+            ;
+
         serviceCollection.AddLogging(configure =>
         {
             configure.ClearProviders();
@@ -34,18 +39,17 @@ public class PipelineBenchmark
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomContext, ICustomValue>>();
-        var builder2 = serviceProvider.GetRequiredService<BlockBuilder<CustomContext2, ICustomValue>>();
+        var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
 
-        var adapterPipe = builder.CreatePipe("adapterPipe", builder2, new MyAdapter())
-            .Then(b => b.Run(c => { c.Start.AddMinutes(1); }))
+        var adapterPipe = builder.CreatePipe("adapterPipe", new MyAdapter())
+            .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
             ;
 
-        var startFromPipe = builder.CreatePipe("steppedPipe", c => c.Step)
-            .Then(builder.Run(c => { var a = 1 + 1; }))
-            .Then(builder.Run(c => { var a = 1 * 1; }))
-            .Then(builder.Run(c => { var a = 1 / 1; }))
-            .Then(builder.Run(c => { var a = 1 - 1; }))
+        var startFromPipe = builder.CreatePipe("steppedPipe", v => v.Value.Step)
+            .Then(builder.Run(c => { _ = 1 + 1; }))
+            .Then(builder.Run(c => { _ = 1 * 1; }))
+            .Then(builder.Run(c => { _ = 1 / 1; }))
+            .Then(builder.Run(c => { _ = 1 - 1; }))
             ;
 
         _pipe = builder
@@ -54,29 +58,9 @@ public class PipelineBenchmark
             .Then(b => b.Run(Do))
             .Then(b => b.Run(DoAsync))
             .Then(b => b.Run(DoAsync2))
-            .Then(b => b.Run(Fibonnaci))
-            .Then(b => b.Run(PrimeCheck))
+            //.Then(b => b.Run(Fibonnaci))
+            //.Then(b => b.Run(PrimeCheck))
             ;
-
-        //_func = builder
-        //    .CreatePipe("compiled sync main pipe")
-        //    .Then(startFromPipe.CompileSync())
-        //    .Then(b => b.Run(Do))
-        //    .Then(b => b.Run(DoAsync))
-        //    .Then(b => b.Run(DoAsync2))
-        //    .Then(b => b.Run(Fibonnaci))
-        //    .Then(b => b.Run(PrimeCheck))
-        //    .CompileSync();
-
-        //_asyncFunc = builder
-        //    .CreatePipe("compiled async main pipe")
-        //    .Then(startFromPipe.CompileAsync())
-        //    .Then(b => b.Run(Do))
-        //    .Then(b => b.Run(DoAsync))
-        //    .Then(b => b.Run(DoAsync2))
-        //    .Then(b => b.Run(Fibonnaci))
-        //    .Then(b => b.Run(PrimeCheck))
-        //    .CompileAsync();
     }
 
     void Do()
@@ -118,54 +102,10 @@ public class PipelineBenchmark
     }
 
     [Benchmark]
-    public CustomContext SyncRegularExecution()
-    {
-        var ctx = new CustomContext(new CustomValue1
-        {
-            Count = 57,
-            Name = "Henry"
-        });
-
-        _pipe.Execute(ctx);
-        return ctx;
-    }
+    public Parameter<CustomValue1> SyncRegularExecution()
+        => _pipe.Execute(_value);
 
     [Benchmark]
-    public async ValueTask<CustomContext> AsyncRegularExecution()
-    {
-        var ctx = new CustomContext(new CustomValue1
-        {
-            Count = 57,
-            Name = "Henry"
-        });
-
-        await _pipe.ExecuteAsync(ctx);
-        return ctx;
-    }
-
-    [Benchmark]
-    public CustomContext SyncCompiledExecution()
-    {
-        var ctx = new CustomContext(new CustomValue1
-        {
-            Count = 57,
-            Name = "Henry"
-        });
-
-        _func.Execute(ctx);
-        return ctx;
-    }
-
-    [Benchmark]
-    public async ValueTask<CustomContext> AsyncCompiledExecution()
-    {
-        var ctx = new CustomContext(new CustomValue1
-        {
-            Count = 57,
-            Name = "Henry"
-        });
-
-        await _asyncFunc.ExecuteAsync(ctx);
-        return ctx;
-    }
+    public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution()
+        => await _pipe.ExecuteAsync(_value);
 }

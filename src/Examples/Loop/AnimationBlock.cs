@@ -1,11 +1,13 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace Loop;
-public class AnimationBlock : AsyncCodeBlock<MyContextType, MyValueType>
+public class AnimationBlock : AsyncCodeBlock<MyValueType>
 {
-    protected override async ValueTask<MyContextType> ExecuteAsync(MyContextType context, MyValueType value)
+    protected override async ValueTask<Parameter<MyValueType>> ExecuteAsync(Parameter<MyValueType> parameter, MyValueType value)
     {
         Console.SetCursorPosition(0, 0);
+        var counter = parameter.Context.Get<int>("Counter");
 
         for (int i = 0; i < 8; i++)
         {
@@ -17,7 +19,7 @@ public class AnimationBlock : AsyncCodeBlock<MyContextType, MyValueType>
                 3 => ConsoleColor.Red,
                 _ => ConsoleColor.White
             };
-            Console.Write(((context.Counter + i) % 4) switch
+            Console.Write(((counter + i) % 4) switch
             {
                 0 => "|  ",
                 1 => "/  ",
@@ -28,6 +30,6 @@ public class AnimationBlock : AsyncCodeBlock<MyContextType, MyValueType>
         }
 
         await Task.Delay(100);
-        return context;
+        return parameter;
     }
 }

@@ -1,16 +1,21 @@
 ﻿namespace MM.PipeBlocks.Abstractions;
 /// <summary>
-/// Defines a resolver for resolving instances of blocks that operate on a context of type <typeparamref name="C"/> and a value of type <typeparamref name="V"/>.
+/// Defines a resolver for resolving instances of blocks that operate on a value of type <typeparamref name="V"/>.
 /// </summary>
-/// <typeparam name="C">The type of the context that the block operates on.</typeparam>
-/// <typeparam name="V">The type of the value in the context.</typeparam>
-public interface IBlockResolver<C, V>
-    where C : IContext<V>
+/// <typeparam name="V">The type of the value in the parameter.</typeparam>
+public interface IBlockResolver<V>
 {
     /// <summary>
     /// Resolves an instance of a block of type <typeparamref name="X"/>.
     /// </summary>
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <returns>An instance of the block of type <typeparamref name="X"/>.</returns>
-    X ResolveInstance<X>() where X : IBlock<C, V>;
+    X ResolveInstance<X>() where X : IBlock<V>;
+
+    /// <summary>
+    /// Creates a new instance of a block builder for the specified value type.
+    /// </summary>
+    /// <typeparam name="Y">The type of value that the block builder will build for.</typeparam>
+    /// <returns>An <see cref="IBlockBuilder{Y}"/> instance for building blocks for the specified value type.</returns>
+    IBlockBuilder<Y> CreateBlockBuilder<Y>();
 }

@@ -2,7 +2,7 @@
 using MM.PipeBlocks.Extensions;
 using Parallel;
 
-var builder = new BlockBuilder<MyContextType, MyValueType>();
+var builder = new BlockBuilder<MyValueType>();
 var pipe = builder.CreatePipe("dice rolls")
                     .Then(b => b.Parallelize(
                         [
@@ -10,17 +10,26 @@ var pipe = builder.CreatePipe("dice rolls")
                             new RandomNumberGenerationBlock(),
                             new RandomNumberGenerationBlock()
                         ],
-                        new Clone<MyContextType, MyValueType>(c => new MyContextType(c.Value)),
-                        new Join<MyContextType, MyValueType>((c, v) =>
+                        new Join<MyValueType>((v, pv) =>
                         {
-                            c.Digits = [.. v.SelectMany(x => x.Digits)];
-                            return c;
-                        })))
+                            foreach (var ppv in pv)
+                                Console.WriteLine($"{ppv.CorrelationId} : {String.Join(',', ppv.Context.Get<int[]>("Digits"))}");
+                            v.Context.Set<int[]>("Digits", [.. pv.SelectMany(x => x.Context.Get<int[]>("Digits"))]);
+                            return v;
+                        }),
+                        null
+                        //new Clone<MyValueType>(v =>
+                        //{
+                        //    return v.Match(
+                        //        failure => v.Value,
+                        //        success => new MyValueType());
+                        //})
+                        ))
                     ;
 
-var result = pipe.Execute(new MyContextType(new MyValueType { }));
+var result = pipe.Execute(new MyValueType());
 
-result.Value.Match(
+result.Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -33,5 +42,5 @@ result.Value.Match(
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write("Success: ");
         Console.ResetColor();
-        Console.WriteLine(String.Join(',', result.Digits));
+        Console.WriteLine(String.Join(',', result.Context.Get<int[]>("Digits")));
     });

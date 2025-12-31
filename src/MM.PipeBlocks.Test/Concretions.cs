@@ -7,231 +7,212 @@ public class MyValue
     public int Counter { get; set; }
 }
 
-public class MyContext(MyValue value) : IContext<MyValue>
+public class IncrementValue_CodeBlock(int i) : CodeBlock<MyValue>
 {
-    public Guid CorrelationId { get; set; } = Guid.NewGuid();
-    public bool IsFinished { get; set; }
-    public bool IsFlipped { get; set; }
-    public Either<IFailureState<MyValue>, MyValue> Value { get; set; } = value;
-
-    public int Step { get; set; }
-    public int Counter { get; set; }
-    public bool ExecutedCatch { get; set; }
-    public bool ExecutedFinally { get; set; }
-    public Guid SniffedId { get; set; }
-
-    public bool Condition { get; set; }
-    public string ResultText { get; set; }
-}
-
-public class IncrementValue_CodeBlock(int i) : CodeBlock<MyContext, MyValue>
-{
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
         value.Counter += i;
-        return context;
+        return value;
     }
 }
 
 /**/
 
-public class ReturnContext_CodeBlock : CodeBlock<MyContext, MyValue>
+public class ReturnValue_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
-        => context;
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
+        => parameter;
 }
 
-public class ReturnFailContext_CodeBlock : CodeBlock<MyContext, MyValue>
+public class ReturnFailContext_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Value.Match(
+        parameter.Match(
             _ => { },
-            x => context.SignalBreak(new DefaultFailureState<MyValue>(x)
+            x => parameter.SignalBreak(new DefaultFailureState<MyValue>(x)
             {
-                FailureReason = "Intentional",
-                CorrelationId = context.CorrelationId
+                FailureReason = "Intentional"
             }));
-        return context;
+        return parameter;
     }
 }
 
-public class Exception_CodeBlock : CodeBlock<MyContext, MyValue>
+public class Exception_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
         => throw new Exception("Intentional");
 }
 
-public class IncrementCounter_CodeBlock : CodeBlock<MyContext, MyValue>
+public class IncrementCounter_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
         value.Counter++;
-        return context;
+        return value;
     }
 }
 
-public class IncrementCounter_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class IncrementCounter_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
         value.Counter++;
-        return ValueTask.FromResult(context);
+        return ValueTask.FromResult(parameter);
     }
 }
 
-public class IncrementContextCounter_CodeBlock : CodeBlock<MyContext, MyValue>
+public class IncrementContextCounter_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Counter++;
-        return context;
+        parameter.Context.Increment<int>("Counter");
+        return parameter;
     }
 }
 
-public class IncrementContextCounter_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class IncrementContextCounter_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Counter++;
-        return ValueTask.FromResult(context);
+        parameter.Context.Increment<int>("Counter");
+        return ValueTask.FromResult(parameter);
     }
 }
 
-public class IncrementContextCounterAndFail_CodeBlock : CodeBlock<MyContext, MyValue>
+public class IncrementContextCounterAndFail_CodeBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Counter++;
+        parameter.Context.Increment<int>("Counter");
         throw new InvalidOperationException();
     }
 }
 
-public class IncrementContextCounterAndFail_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class IncrementContextCounterAndFail_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Counter++;
+        parameter.Context.Increment<int>("Counter");
         throw new InvalidOperationException();
     }
 }
 
-public class SniffCatchBlock : CodeBlock<MyContext, MyValue>
+public class SniffCatchBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ExecutedCatch = true;
-        context.SniffedId = value.Identifier;
-        return context;
+        parameter.Context.Set("ExecutedCatch", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
+        return parameter;
     }
 }
 
-public class SniffFinallyBlock : CodeBlock<MyContext, MyValue>
+public class SniffFinallyBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ExecutedFinally = true;
-        context.SniffedId = value.Identifier;
-        return context;
+        parameter.Context.Set("ExecutedFinally", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
+        return parameter;
     }
 }
 
-public class SniffCatchAsyncBlock : AsyncCodeBlock<MyContext, MyValue>
+public class SniffCatchAsyncBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ExecutedCatch = true;
-        context.SniffedId = value.Identifier;
-        return ValueTask.FromResult(context);
+        parameter.Context.Set("ExecutedCatch", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
+        return ValueTask.FromResult(parameter);
     }
 }
 
-public class SniffFinallyAsyncBlock : AsyncCodeBlock<MyContext, MyValue>
+public class SniffFinallyAsyncBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ExecutedFinally = true;
-        context.SniffedId = value.Identifier;
-        return ValueTask.FromResult(context);
+        parameter.Context.Set("ExecutedFinally", true);
+        parameter.Context.Set("SniffedId", value.Identifier);
+        return ValueTask.FromResult(parameter);
     }
 }
 
 /**/
 
-public class ReturnContext_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class ReturnValue_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
-        => ValueTask.FromResult(context);
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
+        => ValueTask.FromResult(parameter);
 }
 
-public class ReturnFailContext_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class ReturnFail_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
     {
-        context.Value.Match(
+        parameter.Match(
             _ => { },
-            x => context.SignalBreak(new DefaultFailureState<MyValue>(x)
+            x => parameter.SignalBreak(new DefaultFailureState<MyValue>(x)
             {
-                FailureReason = "Intentional",
-                CorrelationId = context.CorrelationId
+                FailureReason = "Intentional"
             }));
-        return ValueTask.FromResult(context);
+        return ValueTask.FromResult(parameter);
     }
 }
 
-public class Exception_AsyncCodeBlock : AsyncCodeBlock<MyContext, MyValue>
+public class Exception_AsyncCodeBlock : AsyncCodeBlock<MyValue>
 {
-    protected override ValueTask<MyContext> ExecuteAsync(MyContext context, MyValue value)
+    protected override ValueTask<Parameter<MyValue>> ExecuteAsync(Parameter<MyValue> parameter, MyValue value)
         => throw new Exception("Intentional");
 }
 
 /**/
 
-public class MyBlockResolver<C, V> : IBlockResolver<C, V>
-    where C : IContext<V>
-
+public class MyBlockResolver<V> : IBlockResolver<V>
 {
     public X ResolveInstance<X>()
-        where X : IBlock<C, V>
+        where X : IBlock<V>
         => Activator.CreateInstance<X>();
+
+    public IBlockBuilder<Y> CreateBlockBuilder<Y>()
+        => new BlockBuilder<Y>();
 }
 
 /**/
 
-public class DoThisBlock : CodeBlock<MyContext, MyValue>
+public class DoThisBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ResultText = "DoThis";
-        return context;
+        parameter.Context.Set("ResultText", "DoThis");
+        return parameter;
     }
 }
 
-public class ElseThisBlock : CodeBlock<MyContext, MyValue>
+public class ElseThisBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        if (context.Counter > 1)
+        if (parameter.Context.Get<int>("Counter") > 1)
         {
-            context.SignalBreak(new DefaultFailureState<MyValue>(value)
+            parameter.SignalBreak(new DefaultFailureState<MyValue>(value)
             {
-                CorrelationId = context.CorrelationId,
                 FailureReason = "Intentional"
             });
         }
         else
         {
-            context.ResultText = "ElseThis";
+            parameter.Context.Set("ResultText", "ElseThis");
         }
-        return context;
+        return parameter;
     }
 }
 
-public class FailBlock : CodeBlock<MyContext, MyValue>
+public class FailBlock : CodeBlock<MyValue>
 {
-    protected override MyContext Execute(MyContext context, MyValue value)
+    protected override Parameter<MyValue> Execute(Parameter<MyValue> parameter, MyValue value)
     {
-        context.ResultText = "Fail";
-        return context;
+        parameter.Context.Set("ResultText", "Fail");
+        return parameter;
     }
 }

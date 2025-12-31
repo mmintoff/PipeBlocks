@@ -5,17 +5,13 @@ using System.Runtime.CompilerServices;
 namespace MM.PipeBlocks;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 /// <summary>
-/// A synchronous block that executes a function or action with optional access to the context's value.
+/// A synchronous block that executes a function or action with optional access to the parameter's value.
 /// </summary>
-/// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public class FuncBlock<C, V> : ISyncBlock<C, V>
-    where C : IContext<V>
+/// <typeparam name="V">The type of the value associated with the parameter.</typeparam>
+public class FuncBlock<V> : ISyncBlock<V>
 {
-    private readonly Func<C, C>? _contextFunc;
-    private readonly Func<C, V, C>? _contextValueFunc;
-    private readonly Action<C>? _contextAction;
-    private readonly Action<C, V>? _contextValueAction;
+    private readonly Func<Parameter<V>, Parameter<V>>? _func;
+    private readonly Action<Parameter<V>>? _action;
 
     private readonly ExecutionStrategy _executionStrategy;
 
@@ -23,85 +19,56 @@ public class FuncBlock<C, V> : ISyncBlock<C, V>
 
     private enum ExecutionStrategy : byte
     {
-        ContextFunc,
-        ContextValueFunc,
-        ContextAction,
-        ContextValueAction
+        Func,
+        Action
     }
 
     /// <summary>
-    /// Initializes a new instance using a function that transforms the context.
+    /// Initializes a new instance using a function that transforms the parameter.
     /// </summary>
-    public FuncBlock(Func<C, C> func)
+    public FuncBlock(Func<Parameter<V>, Parameter<V>> func)
     {
-        _contextFunc = func ?? throw new ArgumentNullException(nameof(func));
-        _executionStrategy = ExecutionStrategy.ContextFunc;
+        _func = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.Func;
     }
 
     /// <summary>
-    /// Initializes a new instance using a function that transforms the context and takes a value.
+    /// Initializes a new instance using an action that operates on the parameter.
     /// </summary>
-    public FuncBlock(Func<C, V, C> func)
+    public FuncBlock(Action<Parameter<V>> action)
     {
-        _contextValueFunc = func ?? throw new ArgumentNullException(nameof(func));
-        _executionStrategy = ExecutionStrategy.ContextValueFunc;
+        _action = action ?? throw new ArgumentNullException(nameof(action));
+        _executionStrategy = ExecutionStrategy.Action;
     }
 
     /// <summary>
-    /// Initializes a new instance using an action that operates on the context.
+    /// Executes the function or action against the given parameter.
     /// </summary>
-    public FuncBlock(Action<C> action)
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>The updated parameter.</returns>
+    public Parameter<V> Execute(Parameter<V> value)
     {
-        _contextAction = action ?? throw new ArgumentNullException(nameof(action));
-        _executionStrategy = ExecutionStrategy.ContextAction;
-    }
-
-    /// <summary>
-    /// Initializes a new instance using an action that operates on the context and takes a value.
-    /// </summary>
-    public FuncBlock(Action<C, V> action)
-    {
-        _contextValueAction = action ?? throw new ArgumentNullException(nameof(action));
-        _executionStrategy = ExecutionStrategy.ContextValueAction;
-    }
-
-    /// <summary>
-    /// Executes the function or action against the given context.
-    /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>The updated context.</returns>
-    public C Execute(C context)
-    {
-        return context.Value.Match(
-            f => context.IsFlipped ? ExecuteWithValue(context, f.Value) : context,
-            s => ExecuteWithValue(context, s));
+        return value.Match(
+            _ => value.Context.IsFlipped ? ExecuteWithStrategy(value) : value,
+            _ => ExecuteWithStrategy(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private C ExecuteWithValue(C context, V value)
+    private Parameter<V> ExecuteWithStrategy(Parameter<V> value)
     {
         return _executionStrategy switch
         {
-            ExecutionStrategy.ContextFunc => _contextFunc!(context),
-            ExecutionStrategy.ContextValueFunc => _contextValueFunc!(context, value),
-            ExecutionStrategy.ContextAction => ExecuteAction(_contextAction!, context),
-            ExecutionStrategy.ContextValueAction => ExecuteAction(_contextValueAction!, context, value),
+            ExecutionStrategy.Func => _func!(value),
+            ExecutionStrategy.Action => ExecuteAction(_action!, value),
             _ => throw new InvalidOperationException("Invalid execution strategy")
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static C ExecuteAction(Action<C> action, C context)
+    private static Parameter<V> ExecuteAction(Action<Parameter<V>> action, Parameter<V> value)
     {
-        action(context);
-        return context;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static C ExecuteAction(Action<C, V> action, C context, V value)
-    {
-        action(context, value);
-        return context;
+        action(value);
+        return value;
     }
 
     public override string ToString() => _fullName ??= GetFullName();
@@ -110,33 +77,27 @@ public class FuncBlock<C, V> : ISyncBlock<C, V>
     {
         var method = _executionStrategy switch
         {
-            ExecutionStrategy.ContextFunc => _contextFunc?.Method,
-            ExecutionStrategy.ContextValueFunc => _contextValueFunc?.Method,
-            ExecutionStrategy.ContextAction => _contextAction?.Method,
-            ExecutionStrategy.ContextValueAction => _contextValueAction?.Method,
+            ExecutionStrategy.Func => _func?.Method,
+            ExecutionStrategy.Action => _action?.Method,
             _ => null
         };
 
         var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
         var methodName = method?.Name ?? "UnknownMethod";
-        var baseName = base.ToString() ?? nameof(FuncBlock<C, V>);
+        var baseName = base.ToString() ?? nameof(FuncBlock<V>);
 
         return $"{baseName} (Method: {typeName}.{methodName})";
     }
 }
 
 /// <summary>
-/// An asynchronous block that executes a function or action with optional access to the context's value.
+/// An asynchronous block that executes a function or action with optional access to the parameter's value.
 /// </summary>
-/// <typeparam name="C">The context type implementing <see cref="IContext{V}"/>.</typeparam>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
-    where C : IContext<V>
+/// <typeparam name="V">The type of the value associated with the parameter.</typeparam>
+public class AsyncFuncBlock<V> : IAsyncBlock<V>
 {
-    private readonly Func<C, ValueTask<C>>? _contextFunc;
-    private readonly Func<C, V, ValueTask<C>>? _contextValueFunc;
-    private readonly Func<C, ValueTask>? _contextAction;
-    private readonly Func<C, V, ValueTask>? _contextValueAction;
+    private readonly Func<Parameter<V>, ValueTask<Parameter<V>>>? _func;
+    private readonly Func<Parameter<V>, ValueTask>? _action;
 
     private readonly ExecutionStrategy _executionStrategy;
 
@@ -144,85 +105,56 @@ public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
 
     private enum ExecutionStrategy : byte
     {
-        ContextFunc,
-        ContextValueFunc,
-        ContextAction,
-        ContextValueAction
+        Func,
+        Action
     }
 
     /// <summary>
-    /// Initializes a new instance using an asynchronous function that returns a context.
+    /// Initializes a new instance using an asynchronous function that returns a parameter.
     /// </summary>
-    public AsyncFuncBlock(Func<C, ValueTask<C>> func)
+    public AsyncFuncBlock(Func<Parameter<V>, ValueTask<Parameter<V>>> func)
     {
-        _contextFunc = func ?? throw new ArgumentNullException(nameof(func));
-        _executionStrategy = ExecutionStrategy.ContextFunc;
-    }
-
-    /// <summary>
-    /// Initializes a new instance using an asynchronous function that returns a context and accepts a value.
-    /// </summary>
-    public AsyncFuncBlock(Func<C, V, ValueTask<C>> func)
-    {
-        _contextValueFunc = func ?? throw new ArgumentNullException(nameof(func));
-        _executionStrategy = ExecutionStrategy.ContextValueFunc;
+        _func = func ?? throw new ArgumentNullException(nameof(func));
+        _executionStrategy = ExecutionStrategy.Func;
     }
 
     /// <summary>
     /// Initializes a new instance using an asynchronous action.
     /// </summary>
-    public AsyncFuncBlock(Func<C, ValueTask> action)
+    public AsyncFuncBlock(Func<Parameter<V>, ValueTask> action)
     {
-        _contextAction = action ?? throw new ArgumentNullException(nameof(action));
-        _executionStrategy = ExecutionStrategy.ContextAction;
+        _action = action ?? throw new ArgumentNullException(nameof(action));
+        _executionStrategy = ExecutionStrategy.Action;
     }
 
     /// <summary>
-    /// Initializes a new instance using an asynchronous action that accepts a value.
+    /// Executes the asynchronous function or action against the given parameter.
     /// </summary>
-    public AsyncFuncBlock(Func<C, V, ValueTask> action)
+    /// <param name="value">The execution parameter.</param>
+    /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        _contextValueAction = action ?? throw new ArgumentNullException(nameof(action));
-        _executionStrategy = ExecutionStrategy.ContextValueAction;
-    }
-
-    /// <summary>
-    /// Executes the asynchronous function or action against the given context.
-    /// </summary>
-    /// <param name="context">The execution context.</param>
-    /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
-    public ValueTask<C> ExecuteAsync(C context)
-    {
-        return context.Value.Match(
-            f => context.IsFlipped ? ExecuteWithValueAsync(context, f.Value) : new ValueTask<C>(context),
-            s => ExecuteWithValueAsync(context, s));
+        return value.Match(
+            _ => value.Context.IsFlipped ? ExecuteWithStrategyAsync(value) : new ValueTask<Parameter<V>>(value),
+            _ => ExecuteWithStrategyAsync(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ValueTask<C> ExecuteWithValueAsync(C context, V value)
+    private ValueTask<Parameter<V>> ExecuteWithStrategyAsync(Parameter<V> value)
     {
         return _executionStrategy switch
         {
-            ExecutionStrategy.ContextFunc => _contextFunc!(context),
-            ExecutionStrategy.ContextValueFunc => _contextValueFunc!(context, value),
-            ExecutionStrategy.ContextAction => ExecuteActionAsync(_contextAction!, context),
-            ExecutionStrategy.ContextValueAction => ExecuteActionAsync(_contextValueAction!, context, value),
+            ExecutionStrategy.Func => _func!(value),
+            ExecutionStrategy.Action => ExecuteActionAsync(_action!, value),
             _ => throw new InvalidOperationException("Invalid execution strategy")
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static async ValueTask<C> ExecuteActionAsync(Func<C, ValueTask> action, C context)
+    private static async ValueTask<Parameter<V>> ExecuteActionAsync(Func<Parameter<V>, ValueTask> action, Parameter<V> value)
     {
-        await action(context).ConfigureAwait(false);
-        return context;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static async ValueTask<C> ExecuteActionAsync(Func<C, V, ValueTask> action, C context, V value)
-    {
-        await action(context, value).ConfigureAwait(false);
-        return context;
+        await action(value).ConfigureAwait(false);
+        return value;
     }
 
     public override string ToString() => _fullName ??= GetFullName();
@@ -231,16 +163,14 @@ public class AsyncFuncBlock<C, V> : IAsyncBlock<C, V>
     {
         var method = _executionStrategy switch
         {
-            ExecutionStrategy.ContextFunc => _contextFunc?.Method,
-            ExecutionStrategy.ContextValueFunc => _contextValueFunc?.Method,
-            ExecutionStrategy.ContextAction => _contextAction?.Method,
-            ExecutionStrategy.ContextValueAction => _contextValueAction?.Method,
+            ExecutionStrategy.Func => _func?.Method,
+            ExecutionStrategy.Action => _action?.Method,
             _ => null
         };
 
         var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
         var methodName = method?.Name ?? "UnknownMethod";
-        var baseName = base.ToString() ?? nameof(AsyncFuncBlock<C, V>);
+        var baseName = base.ToString() ?? nameof(AsyncFuncBlock<V>);
 
         return $"{baseName} (Method: {typeName}.{methodName})";
     }

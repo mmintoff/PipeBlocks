@@ -1,17 +1,18 @@
-﻿namespace MM.PipeBlocks.Test;
+﻿using MM.PipeBlocks.Abstractions;
+
+namespace MM.PipeBlocks.Test;
+
 public class NoopBlockTests
 {
     [Fact]
     public void SyncNoop()
     {
         var value = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(value);
 
-        var block = new NoopBlock<MyContext, MyValue>();
-        var result = block.Execute(context);
+        var block = new NoopBlock<MyValue>();
+        var result = block.Execute(value);
 
-        Assert.Equal(context.CorrelationId, result.CorrelationId);
-        result.Value.Match(
+        result.Match(
             f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
             s => Assert.Equal(value.Identifier, s.Identifier));
     }
@@ -20,13 +21,11 @@ public class NoopBlockTests
     public async Task AsyncNoop()
     {
         var value = new MyValue { Identifier = Guid.NewGuid() };
-        var context = new MyContext(value);
 
-        var block = new NoopBlock<MyContext, MyValue>();
-        var result = await block.ExecuteAsync(context);
-        
-        Assert.Equal(context.CorrelationId, result.CorrelationId);
-        result.Value.Match(
+        var block = new NoopBlock<MyValue>();
+        var result = await block.ExecuteAsync(value);
+
+        result.Match(
             f => Assert.Fail(f.FailureReason ?? "Empty FailureReason"),
             s => Assert.Equal(value.Identifier, s.Identifier));
     }

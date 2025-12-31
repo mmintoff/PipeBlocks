@@ -1,8 +1,9 @@
 ﻿using Loop;
 using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
 
-var builder = new BlockBuilder<MyContextType, MyValueType>();
+var builder = new BlockBuilder<MyValueType>();
 var framePipe = builder.CreatePipe("Frame Pipe")
                     .Then<AnimationBlock>()
                     .Then<IncrementBlock>()
@@ -11,14 +12,17 @@ var framePipe = builder.CreatePipe("Frame Pipe")
 var animationPipe = builder.CreatePipe("Animation Pipe")
                         .Then(b => b.Run(() => Console.CursorVisible = false))
                         .Then(b => b.Loop()
-                                    .Do(framePipe, c => c.Counter <= 100))
+                                    .Do(framePipe, v => v.Context.Get<int>("Counter") <= 100))
                         .Then(b => b.Run(() => Console.CursorVisible = true))
                         .Then(b => b.Run(() => Console.ResetColor()))
                         .Then(b => b.Run(() => Console.WriteLine()))
                         ;
 
-var result = animationPipe.Execute(new MyContextType(new MyValueType()));
-result.Value.Match(
+var result = animationPipe.Execute(new MyValueType(), ctx =>
+{
+    ctx.Set("Counter", 0);
+});
+result.Match(
     failure =>
     {
         Console.ForegroundColor = ConsoleColor.Red;
@@ -31,5 +35,4 @@ result.Value.Match(
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write("Success: ");
         Console.ResetColor();
-        Console.WriteLine(result.Counter);
     });

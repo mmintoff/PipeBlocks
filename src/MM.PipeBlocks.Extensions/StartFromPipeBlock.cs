@@ -1,123 +1,152 @@
 ﻿using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks.Extensions;
 /// <summary>
 /// A block that executes a series of blocks starting from a specific step, based on a function that determines the start step.
 /// </summary>
-/// <typeparam name="C">The context type.</typeparam>
-/// <typeparam name="V">The value type associated with the context.</typeparam>
+/// <typeparam name="V">The value type associated with the parameter.</typeparam>
 /// <remarks>
-/// Initializes a new instance of the <see cref="StartFromPipeBlock{C, V}"/> class.
+/// Initializes a new instance of the <see cref="StartFromPipeBlock{V}"/> class.
 /// </remarks>
 /// <param name="pipeName">The name of the pipe.</param>
 /// <param name="startStepFunc">The function to determine the step to start from.</param>
 /// <param name="blockBuilder">The block builder used to resolve blocks.</param>
-public partial class StartFromPipeBlock<C, V>(
+public partial class StartFromPipeBlock<V>(
         string pipeName,
-        Func<C, int> startStepFunc,
-        BlockBuilder<C, V> blockBuilder
-        ) : ISyncBlock<C, V>, IAsyncBlock<C, V>
-    where C : IContext<V>
+        Func<Parameter<V>, int> startStepFunc,
+        BlockBuilder<V> blockBuilder
+        ) : IPipeBlock<V>
 {
-    private readonly List<IBlock<C, V>> _blocks = [];
-    private readonly ILogger<StartFromPipeBlock<C, V>> _logger = blockBuilder.CreateLogger<StartFromPipeBlock<C, V>>();
+    private readonly List<IBlock<V>> _blocks = [];
+    private readonly ILogger<StartFromPipeBlock<V>> _logger = blockBuilder.CreateLogger<StartFromPipeBlock<V>>();
+
+    private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logAppliedContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applied context configuration for pipe: '{name}'");
+
+    private static readonly Action<ILogger, string, Guid, int, Exception?> s_sync_logExecutingPipe = LoggerMessage.Define<string, Guid, int>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' synchronously for context: {CorrelationId}, starting from: {step}");
+    private static readonly Action<ILogger, string, int, Guid, Exception?> s_sync_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
+    private static readonly Action<ILogger, string, Guid, Exception?> s_sync_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed synchronous pipe: '{name}' execution for context: {CorrelationId}");
+
+    private static readonly Action<ILogger, string, Guid, int, Exception?> s_async_logExecutingPipe = LoggerMessage.Define<string, Guid, int>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' asynchronously for context: {CorrelationId}, starting from: {step}");
+    private static readonly Action<ILogger, string, int, Guid, Exception?> s_async_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
+    private static readonly Action<ILogger, string, Guid, Exception?> s_async_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}");
 
     /// <summary>
-    /// Executes the blocks synchronously, starting from a specified step, and returns the modified context.
+    /// Executes the blocks synchronously, starting from a specified step, with an optional context configuration.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>The modified context after executing the blocks.</returns>
-    public C Execute(C context)
+    /// <param name="value">The parameter to execute.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>The modified parameter after executing the blocks.</returns>
+    public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
     {
-        int i = startStepFunc(context);
-        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", pipeName, context.CorrelationId, i);
-        for (; i < _blocks.Count; i++)
-        {
-            if (IsFinished(context))
-            {
-                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, context.CorrelationId);
-                break;
-            }
-
-            context = BlockExecutor.ExecuteSync(_blocks[i], context);
-        }
-        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, context.CorrelationId);
-        return context;
+        s_logApplyingContextConfig(_logger, pipeName, null);
+        configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, pipeName, null);
+        return Execute(value);
     }
 
     /// <summary>
-    /// Executes the blocks asynchronously, starting from a specified step, and returns the modified context.
+    /// Executes the blocks synchronously, starting from a specified step, and returns the modified parameter.
     /// </summary>
-    /// <param name="context">The context to execute.</param>
-    /// <returns>A task representing the asynchronous operation, with the modified context after execution.</returns>
-    public async ValueTask<C> ExecuteAsync(C context)
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>The modified parameter after executing the blocks.</returns>
+    public Parameter<V> Execute(Parameter<V> value)
     {
-        int i = startStepFunc(context);
-        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", pipeName, context.CorrelationId, i);
+        int i = startStepFunc(value);
+        s_sync_logExecutingPipe(_logger, pipeName, value.Context.CorrelationId, i, null);
         for (; i < _blocks.Count; i++)
         {
-            if (IsFinished(context))
+            if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, context.CorrelationId);
+                s_sync_logStoppingPipe(_logger, pipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
-            context = await BlockExecutor.ExecuteAsync(_blocks[i], context);
+            value = BlockExecutor.ExecuteSync(_blocks[i], value);
         }
-        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, context.CorrelationId);
-        return context;
+        s_sync_logCompletedPipe(_logger, pipeName, value.Context.CorrelationId, null);
+        return value;
     }
 
     /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into a synchronous function.
+    /// Executes the blocks asynchronously, starting from a specified step, with an optional context configuration.
     /// </summary>
-    /// <returns>A function that executes the block synchronously.</returns>
-    public PipeBlockDelegate<C, V> ToDelegate() => Execute;
+    /// <param name="value">The parameter to execute.</param>
+    /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
+    /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
+    {
+        s_logApplyingContextConfig(_logger, pipeName, null);
+        configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, pipeName, null);
+        return ExecuteAsync(value);  // Return the task directly, no await
+    }
 
     /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{C, V}"/> into an asynchronous function.
+    /// Executes the blocks asynchronously, starting from a specified step, and returns the modified parameter.
     /// </summary>
-    /// <returns>A function that executes the block asynchronously.</returns>
-    public PipeBlockAsyncDelegate<C, V> ToAsyncDelegate() => ExecuteAsync;
+    /// <param name="value">The parameter to execute.</param>
+    /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
+    public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
+    {
+        int i = startStepFunc(value);
+        s_async_logExecutingPipe(_logger, pipeName, value.Context.CorrelationId, i, null);
+        for (; i < _blocks.Count; i++)
+        {
+            if (IsFinished(value))
+            {
+                s_async_logStoppingPipe(_logger, pipeName, i, value.Context.CorrelationId, null);
+                break;
+            }
+
+            value = await BlockExecutor.ExecuteAsync(_blocks[i], value);
+        }
+        s_async_logCompletedPipe(_logger, pipeName, value.Context.CorrelationId, null);
+        return value;
+    }
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks.
     /// </summary>
     /// <param name="block">The block to add.</param>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
-    public StartFromPipeBlock<C, V> Then(IBlock<C, V> block)
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
+    public StartFromPipeBlock<V> Then(IBlock<V> block)
         => AddBlock(block);
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks, based on a resolved instance.
     /// </summary>
     /// <typeparam name="X">The type of block to resolve and add.</typeparam>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
-    public StartFromPipeBlock<C, V> Then<X>()
-        where X : IBlock<C, V>
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
+    public StartFromPipeBlock<V> Then<X>()
+        where X : IBlock<V>
         => AddBlock(blockBuilder.ResolveInstance<X>());
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks, based on a function that resolves the block.
     /// </summary>
     /// <param name="func">The function that resolves the block to add.</param>
-    /// <returns>The updated <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
-    public StartFromPipeBlock<C, V> Then(Func<BlockBuilder<C, V>, IBlock<C, V>> func)
+    /// <returns>The updated <see cref="StartFromPipeBlock{V}"/> instance.</returns>
+    public StartFromPipeBlock<V> Then(Func<BlockBuilder<V>, IBlock<V>> func)
         => AddBlock(func(blockBuilder));
 
-    private StartFromPipeBlock<C, V> AddBlock(IBlock<C, V> block)
+    private StartFromPipeBlock<V> AddBlock(IBlock<V> block)
     {
         _blocks.Add(block);
-        _logger.LogTrace("Added block: '{Type}' to pipe: '{name}'", block.ToString(), pipeName);
+        s_logAddBlock(_logger, block.ToString() ?? "Unknown", pipeName, null);
         return this;
     }
 
-    private static bool IsFinished(C c) => c.IsFlipped
-        ? !(c.IsFinished || IsFailure(c))
-        : c.IsFinished || IsFailure(c);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
+        ? !(value.Context.IsFinished || IsFailure(value))
+        : value.Context.IsFinished || IsFailure(value);
 
-    private static bool IsFailure(C c) => c.Value.Match(
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,
         _ => false);
 
@@ -130,17 +159,15 @@ public partial class StartFromPipeBlock<C, V>(
 public static partial class BuilderExtensions
 {
     /// <summary>
-    /// Creates a new <see cref="StartFromPipeBlock{C, V}"/> with a specified start step function.
+    /// Creates a new <see cref="StartFromPipeBlock{V}"/> with a specified start step function.
     /// </summary>
-    /// <typeparam name="C">The context type.</typeparam>
-    /// <typeparam name="V">The value type associated with the context.</typeparam>
+    /// <typeparam name="V">The value type associated with the parameter.</typeparam>
     /// <param name="blockBuilder">The block builder used to resolve the blocks.</param>
     /// <param name="pipeName">The name of the pipe.</param>
     /// <param name="startStepFunc">The function that determines the start step for execution.</param>
-    /// <returns>A new <see cref="StartFromPipeBlock{C, V}"/> instance.</returns>
-    public static StartFromPipeBlock<C, V> CreatePipe<C, V>(this BlockBuilder<C, V> blockBuilder,
+    /// <returns>A new <see cref="StartFromPipeBlock{V}"/> instance.</returns>
+    public static StartFromPipeBlock<V> CreatePipe<V>(this BlockBuilder<V> blockBuilder,
         string pipeName,
-        Func<C, int> startStepFunc)
-        where C : IContext<V>
+        Func<Parameter<V>, int> startStepFunc)
         => new(pipeName, startStepFunc, blockBuilder);
 }

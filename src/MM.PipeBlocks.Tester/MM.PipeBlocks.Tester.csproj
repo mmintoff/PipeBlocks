@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <LangVersion>14</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -16,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\MM.PipeBlocks.Extensions.DependencyInjection\MM.PipeBlocks.Extensions.DependencyInjection.csproj" />
     <ProjectReference Include="..\MM.PipeBlocks.Extensions\MM.PipeBlocks.Extensions.csproj" />
     <ProjectReference Include="..\MM.PipeBlocks\MM.PipeBlocks.csproj" />
   </ItemGroup>

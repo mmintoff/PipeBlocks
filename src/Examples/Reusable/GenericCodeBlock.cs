@@ -1,22 +1,23 @@
 ﻿using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace Reusable;
-public class GenericCodeBlock : CodeBlock<ICustomContext, ICustomValue>
+public class GenericCodeBlock : CodeBlock<ICustomValue>
 {
-    protected override ICustomContext Execute(ICustomContext context, ICustomValue value)
+    protected override Parameter<ICustomValue> Execute(Parameter<ICustomValue> parameter, ICustomValue value)
     {
-        Console.WriteLine($"Processing file operation for '{context.FileName}'");
-        switch (context)
+        Console.WriteLine($"Processing file operation for '{value.FileName}'");
+        switch (value)
         {
-            case FileDownloadContext download:
+            case FileDownloadValue download:
                 Console.WriteLine($"Handling download: {download.FileName} from {download.SourceUrl}");
                 break;
 
-            case FileUploadContext upload:
+            case FileUploadValue upload:
                 Console.WriteLine($"Handling upload: {upload.FileName} to {upload.DestinationUrl}");
                 break;
 
-            case FileCompressionContext compression:
+            case FileCompressionValue compression:
                 Console.WriteLine($"Handling compression: {compression.FileName} into {compression.ArchiveName}");
                 break;
 
@@ -25,6 +26,6 @@ public class GenericCodeBlock : CodeBlock<ICustomContext, ICustomValue>
                 break;
         }
 
-        return context;
+        return parameter;
     }
 }
