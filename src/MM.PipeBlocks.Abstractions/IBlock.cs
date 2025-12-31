@@ -1,10 +1,14 @@
 ﻿namespace MM.PipeBlocks.Abstractions;
+
+/// <summary>
+/// Represents the bare minimum interface for a block. Useful for type restrictions
+/// </summary>
+public interface IBlock { }
 /// <summary>
 /// Represents a block of code that operates on a value of type <typeparamref name="V"/>.
 /// </summary>
 /// <typeparam name="V">The type of the value in the parameter.</typeparam>
-public interface IBlock<V>
-{ }
+public interface IBlock<V> : IBlock { }
 
 /// <summary>
 /// Represents a synchronous block that operates on a value of type <typeparamref name="V"/>.

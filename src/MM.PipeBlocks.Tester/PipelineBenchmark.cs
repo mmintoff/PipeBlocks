@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 
 namespace MM.PipeBlocks.Tester;
 
@@ -12,9 +13,7 @@ namespace MM.PipeBlocks.Tester;
 [DisassemblyDiagnoser(printSource: true)]
 public class PipelineBenchmark
 {
-    private PipeBlock<CustomValue1> _pipe;
-    private PipeBlockDelegate<CustomValue1> _func;
-    private PipeBlockAsyncDelegate<CustomValue1> _asyncFunc;
+    private IPipeBlock<CustomValue1> _pipe;
     private CustomValue1 _value = new()
     {
         Count = 57,
@@ -25,11 +24,12 @@ public class PipelineBenchmark
     public void Setup()
     {
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTransient<IBlockResolver<ICustomValue>, ServiceProviderBackedResolver<ICustomValue>>();
-        serviceCollection.AddTransient<BlockBuilder<CustomValue1>>();
-        serviceCollection.AddTransient<BlockBuilder<CustomValue2>>();
-        serviceCollection.AddTransient<DummyBlock>();
-        serviceCollection.AddTransient<CustomCodeBlock>();
+
+        serviceCollection.AddPipeBlocks()
+            .AddTransientBlock<DummyBlock>()
+            .AddTransientBlock<CustomCodeBlock>()
+            ;
+
         serviceCollection.AddLogging(configure =>
         {
             configure.ClearProviders();
@@ -62,9 +62,6 @@ public class PipelineBenchmark
             //.Then(b => b.Run(Fibonnaci))
             //.Then(b => b.Run(PrimeCheck))
             ;
-
-        _func = _pipe.ToDelegate();
-        _asyncFunc = _pipe.ToAsyncDelegate();
     }
 
     void Do()
@@ -112,12 +109,4 @@ public class PipelineBenchmark
     [Benchmark]
     public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution()
         => await _pipe.ExecuteAsync(_value);
-
-    [Benchmark]
-    public Parameter<CustomValue1> SyncCompiledExecution()
-        => _func(_value);
-
-    [Benchmark]
-    public async ValueTask<Parameter<CustomValue1>> AsyncCompiledExecution()
-        => await _asyncFunc(_value);
 }

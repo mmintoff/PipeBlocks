@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks.Extensions;
 /// <summary>
@@ -16,10 +17,22 @@ public partial class StartFromPipeBlock<V>(
         string pipeName,
         Func<Parameter<V>, int> startStepFunc,
         BlockBuilder<V> blockBuilder
-        ) : ISyncBlock<V>, IAsyncBlock<V>
+        ) : IPipeBlock<V>
 {
     private readonly List<IBlock<V>> _blocks = [];
     private readonly ILogger<StartFromPipeBlock<V>> _logger = blockBuilder.CreateLogger<StartFromPipeBlock<V>>();
+
+    private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
+    private static readonly Action<ILogger, string, Exception?> s_logAppliedContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applied context configuration for pipe: '{name}'");
+
+    private static readonly Action<ILogger, string, Guid, int, Exception?> s_sync_logExecutingPipe = LoggerMessage.Define<string, Guid, int>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' synchronously for context: {CorrelationId}, starting from: {step}");
+    private static readonly Action<ILogger, string, int, Guid, Exception?> s_sync_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
+    private static readonly Action<ILogger, string, Guid, Exception?> s_sync_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed synchronous pipe: '{name}' execution for context: {CorrelationId}");
+
+    private static readonly Action<ILogger, string, Guid, int, Exception?> s_async_logExecutingPipe = LoggerMessage.Define<string, Guid, int>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' asynchronously for context: {CorrelationId}, starting from: {step}");
+    private static readonly Action<ILogger, string, int, Guid, Exception?> s_async_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
+    private static readonly Action<ILogger, string, Guid, Exception?> s_async_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}");
 
     /// <summary>
     /// Executes the blocks synchronously, starting from a specified step, with an optional context configuration.
@@ -29,7 +42,9 @@ public partial class StartFromPipeBlock<V>(
     /// <returns>The modified parameter after executing the blocks.</returns>
     public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
     {
+        s_logApplyingContextConfig(_logger, pipeName, null);
         configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, pipeName, null);
         return Execute(value);
     }
 
@@ -41,18 +56,18 @@ public partial class StartFromPipeBlock<V>(
     public Parameter<V> Execute(Parameter<V> value)
     {
         int i = startStepFunc(value);
-        _logger.LogTrace("Executing pipe: '{name}' synchronously for context: {CorrelationId}, starting from: {step}", pipeName, value.Context.CorrelationId, i);
+        s_sync_logExecutingPipe(_logger, pipeName, value.Context.CorrelationId, i, null);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping synchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, value.Context.CorrelationId);
+                s_sync_logStoppingPipe(_logger, pipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
             value = BlockExecutor.ExecuteSync(_blocks[i], value);
         }
-        _logger.LogTrace("Completed synchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, value.Context.CorrelationId);
+        s_sync_logCompletedPipe(_logger, pipeName, value.Context.CorrelationId, null);
         return value;
     }
 
@@ -64,7 +79,9 @@ public partial class StartFromPipeBlock<V>(
     /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
     {
+        s_logApplyingContextConfig(_logger, pipeName, null);
         configureContext?.Invoke(value.Context);
+        s_logAppliedContextConfig(_logger, pipeName, null);
         return ExecuteAsync(value);  // Return the task directly, no await
     }
 
@@ -76,32 +93,20 @@ public partial class StartFromPipeBlock<V>(
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         int i = startStepFunc(value);
-        _logger.LogTrace("Executing pipe: '{name}' asynchronously for context: {CorrelationId}, starting from: {step}", pipeName, value.Context.CorrelationId, i);
+        s_async_logExecutingPipe(_logger, pipeName, value.Context.CorrelationId, i, null);
         for (; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                _logger.LogTrace("Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}", pipeName, i, value.Context.CorrelationId);
+                s_async_logStoppingPipe(_logger, pipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
             value = await BlockExecutor.ExecuteAsync(_blocks[i], value);
         }
-        _logger.LogTrace("Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}", pipeName, value.Context.CorrelationId);
+        s_async_logCompletedPipe(_logger, pipeName, value.Context.CorrelationId, null);
         return value;
     }
-
-    /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{V}"/> into a synchronous function.
-    /// </summary>
-    /// <returns>A function that executes the block synchronously.</returns>
-    public PipeBlockDelegate<V> ToDelegate() => Execute;
-
-    /// <summary>
-    /// Converts the current <see cref="StartFromPipeBlock{V}"/> into an asynchronous function.
-    /// </summary>
-    /// <returns>A function that executes the block asynchronously.</returns>
-    public PipeBlockAsyncDelegate<V> ToAsyncDelegate() => ExecuteAsync;
 
     /// <summary>
     /// Adds a new block to the pipe to be executed after the current blocks.
@@ -132,13 +137,16 @@ public partial class StartFromPipeBlock<V>(
     {
         _blocks.Add(block);
         _logger.LogTrace("Added block: '{Type}' to pipe: '{name}'", block.ToString(), pipeName);
+        s_logAddBlock(_logger, block.ToString() ?? "Unknown", pipeName, null);
         return this;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
         ? !(value.Context.IsFinished || IsFailure(value))
         : value.Context.IsFinished || IsFailure(value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,
         _ => false);

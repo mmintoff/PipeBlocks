@@ -1,12 +1,13 @@
 ﻿using Microsoft.Extensions.Logging;
 using MM.PipeBlocks.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks;
 /// <summary>
 /// Represents a pipeline of blocks that execute sequentially in either synchronous or asynchronous fashion.
 /// </summary>
 /// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
+public partial class PipeBlock<V> : IPipeBlock<V>
 {
     /// <summary>
     /// The <see cref="BlockBuilder{V}"/> used to resolve and create blocks.
@@ -113,23 +114,15 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
             }
 
             var task = BlockExecutor.ExecuteAsync(_blocks[i], value);
-            value = task.IsCompleted ? task.Result : await task;
+            value = task.IsCompletedSuccessfully
+                ? task.Result
+                : task.IsCompleted
+                    ? task.GetAwaiter().GetResult()
+                    : await task;
         }
         s_async_logCompletedPipe(_logger, _pipeName, value.Context.CorrelationId, null);
         return value;
     }
-
-    /// <summary>
-    /// Converts the current <see cref="PipeBlock{V}"/> into a synchronous function.
-    /// </summary>
-    /// <returns>A function that executes the block synchronously.</returns>
-    public PipeBlockDelegate<V> ToDelegate() => Execute;
-
-    /// <summary>
-    /// Converts the current <see cref="PipeBlock{V}"/> into an asynchronous function.
-    /// </summary>
-    /// <returns>A function that executes the block asynchronously.</returns>
-    public PipeBlockAsyncDelegate<V> ToAsyncDelegate() => ExecuteAsync;
 
     /// <summary>
     /// Adds a block to the pipeline.
@@ -173,10 +166,12 @@ public partial class PipeBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
         return this;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
         ? !(value.Context.IsFinished || IsFailure(value))
         : value.Context.IsFinished || IsFailure(value);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsFailure(Parameter<V> value) => value.Match(
         _ => true,
         _ => false);

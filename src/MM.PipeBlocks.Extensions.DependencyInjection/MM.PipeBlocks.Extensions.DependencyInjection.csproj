@@ -6,11 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-    <Version>1.0.6</Version>
+    <Version>1.0.5</Version>
     <Authors>Mark Mintoff</Authors>
-    <Description>This is the abstractions layer for MM.PipeBlocks</Description>
-    <PackageTags>abstractions;core</PackageTags>
-    <PackageId>MM.PipeBlocks.Abstractions</PackageId>
+    <Description>MM.PipeBlocks implementation of the interfaces in Microsoft.Extensions.DependencyInjection.Abstractions, the .NET Framework dependency injection abstraction.</Description>
+    <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>
+    <PackageId>MM.PipeBlocks.Extensions.DependencyInjection</PackageId>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <RepositoryUrl>https://github.com/mmintoff/PipeBlocks</RepositoryUrl>
 
@@ -21,19 +21,15 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-
-    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <ProjectReference Include="..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\MM.PipeBlocks\MM.PipeBlocks.csproj" />
   </ItemGroup>
 
 </Project>
