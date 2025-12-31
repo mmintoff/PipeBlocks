@@ -1,10 +1,16 @@
 ﻿using FailureState;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 using MM.PipeBlocks;
 
 var serviceCollection = new ServiceCollection();
-serviceCollection.AddTransient<BlockBuilder<MyValueType>>();
+serviceCollection
+    .AddPipeBlocks()
+    .AddTransientBlock<FirstBlock>()
+    .AddTransientBlock<SecondBlock>()
+    .AddTransientBlock<ThirdBlock>()
+    ;
 serviceCollection.AddLogging(configure =>
 {
     configure.ClearProviders();

@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\MM.PipeBlocks.Abstractions\MM.PipeBlocks.Abstractions.csproj" />
+    <ProjectReference Include="..\..\MM.PipeBlocks.Extensions.DependencyInjection\MM.PipeBlocks.Extensions.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\MM.PipeBlocks\MM.PipeBlocks.csproj" />
   </ItemGroup>
 

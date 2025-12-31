@@ -11,7 +11,7 @@ public class Context
     }
 
     private static int _nextIndex = 0;
-    private readonly ConcurrentDictionary<int, object> _storage = new();
+    internal readonly ConcurrentDictionary<int, object> _storage = new();
 
     private ConcurrentDictionary<string, T> GetDictionary<T>()
     {
@@ -64,4 +64,21 @@ public class Context
 
     public T AddOrUpdate<T>(string key, T addValue, Func<string, T, T> updateFactory)
         => GetDictionary<T>().AddOrUpdate(key, addValue, updateFactory);
+
+    internal Context Clone()
+    {
+        var clone = new Context();
+
+        foreach (var kvp in _storage)
+        {
+            // ConcurrentDictionary constructor accepts IEnumerable<KeyValuePair>
+            // and creates a copy
+            var sourceDict = (dynamic)kvp.Value;
+            var clonedDict = Activator.CreateInstance(kvp.Value.GetType(), sourceDict);
+
+            clone._storage[kvp.Key] = clonedDict!;
+        }
+
+        return clone;
+    }
 }

@@ -11,4 +11,11 @@ public interface IBlockResolver<V>
     /// <typeparam name="X">The type of the block to resolve.</typeparam>
     /// <returns>An instance of the block of type <typeparamref name="X"/>.</returns>
     X ResolveInstance<X>() where X : IBlock<V>;
+
+    /// <summary>
+    /// Creates a new instance of a block builder for the specified value type.
+    /// </summary>
+    /// <typeparam name="Y">The type of value that the block builder will build for.</typeparam>
+    /// <returns>An <see cref="IBlockBuilder{Y}"/> instance for building blocks for the specified value type.</returns>
+    IBlockBuilder<Y> CreateBlockBuilder<Y>();
 }

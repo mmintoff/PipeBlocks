@@ -6,8 +6,7 @@ public class IncrementBlock : CodeBlock<MyValueType>
 {
     protected override Parameter<MyValueType> Execute(Parameter<MyValueType> parameter, MyValueType value)
     {
-        var counter = parameter.Context.Get<int>("Counter");
-        counter++;
+        parameter.Context.Increment<int>("Counter");
         return parameter;
     }
 }

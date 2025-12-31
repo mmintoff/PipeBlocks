@@ -21,8 +21,8 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     public ParallelBlock(
         IBlock<V>[] blocks,
         Either<Join<V>, JoinAsync<V>> joiner,
-        Clone<V> cloner)
-        => (_blocks, _joiner, _cloner) = (blocks, joiner, cloner);
+        Clone<V>? cloner = null)
+        => (_blocks, _joiner, _cloner) = (blocks, joiner, cloner ?? (static v => default));
 
     /// <summary>
     /// Executes the blocks synchronously in parallel and then joins the results.
@@ -31,14 +31,11 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>The modified parameter after executing and joining the results.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        //var snapshot = Context_old.Capture();
-        var values = new Parameter<V>[_blocks.Length];
+        Parameter<V>[] values = [.. Enumerable.Range(0, _blocks.Length).Select(_ => Clone(value))];
 
         Parallel.ForEach(_blocks, (block, state, index) =>
         {
-            //snapshot.Apply();
-            var valueClone = _cloner(value);
-            values[index] = BlockExecutor.ExecuteSync(block, valueClone);
+            values[index] = BlockExecutor.ExecuteSync(block, values[index]);
         });
 
         return _joiner.Match(
@@ -53,13 +50,11 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
     /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        //var snapshot = Context_old.Capture();
         var tasks = new Task<Parameter<V>>[_blocks.Length];
+
         for (int i = 0; i < _blocks.Length; i++)
         {
-            //snapshot.Apply();
-            var valueClone = _cloner(value);
-            tasks[i] = BlockExecutor.ExecuteAsync(_blocks[i], valueClone).AsTask();
+            tasks[i] = BlockExecutor.ExecuteAsync(_blocks[i], Clone(value)).AsTask();
         }
 
         var result = await Task.WhenAll(tasks);
@@ -68,6 +63,9 @@ public class ParallelBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
             joiner => ValueTask.FromResult(joiner(value, result)),
             async joiner => await joiner(value, result));
     }
+
+    private Parameter<V> Clone(Parameter<V> value)
+        => value.Clone(_cloner(value));
 }
 
 /// <summary>
@@ -86,8 +84,8 @@ public static partial class BuilderExtensions
     /// <returns>A new <see cref="ParallelBlock{V}"/> instance.</returns>
     public static ParallelBlock<V> Parallelize<V>(this BlockBuilder<V> _,
         IBlock<V>[] blocks,
-        Clone<V> cloner,
-        Either<Join<V>, JoinAsync<V>> joiner)
+        Either<Join<V>, JoinAsync<V>> joiner,
+        Clone<V>? cloner = null)
         => new(blocks, joiner, cloner);
 }
 
@@ -97,7 +95,7 @@ public static partial class BuilderExtensions
 /// <typeparam name="V">The value type associated with the parameter.</typeparam>
 /// <param name="value">The parameter to clone.</param>
 /// <returns>The cloned parameter.</returns>
-public delegate Parameter<V> Clone<V>(Parameter<V> value);
+public delegate V? Clone<V>(Parameter<V> value);
 
 /// <summary>
 /// An asynchronous delegate that defines a method for cloning a parameter.

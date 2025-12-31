@@ -39,21 +39,20 @@ public class PipelineBenchmark
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        var builder1 = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
-        var builder2 = serviceProvider.GetRequiredService<BlockBuilder<CustomValue2>>();
+        var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
 
-        var adapterPipe = builder1.CreatePipe("adapterPipe", builder2, new MyAdapter())
+        var adapterPipe = builder.CreatePipe("adapterPipe", new MyAdapter())
             .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
             ;
 
-        var startFromPipe = builder1.CreatePipe("steppedPipe", v => v.Value.Step)
-            .Then(builder1.Run(c => { var a = 1 + 1; }))
-            .Then(builder1.Run(c => { var a = 1 * 1; }))
-            .Then(builder1.Run(c => { var a = 1 / 1; }))
-            .Then(builder1.Run(c => { var a = 1 - 1; }))
+        var startFromPipe = builder.CreatePipe("steppedPipe", v => v.Value.Step)
+            .Then(builder.Run(c => { _ = 1 + 1; }))
+            .Then(builder.Run(c => { _ = 1 * 1; }))
+            .Then(builder.Run(c => { _ = 1 / 1; }))
+            .Then(builder.Run(c => { _ = 1 - 1; }))
             ;
 
-        _pipe = builder1
+        _pipe = builder
             .CreatePipe("mainPipe")
             .Then(startFromPipe)
             .Then(b => b.Run(Do))

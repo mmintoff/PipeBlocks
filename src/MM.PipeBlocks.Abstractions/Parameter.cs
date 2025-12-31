@@ -1,4 +1,6 @@
-﻿namespace MM.PipeBlocks.Abstractions;
+﻿using System.Collections.Concurrent;
+
+namespace MM.PipeBlocks.Abstractions;
 
 public class Parameter<V> : IEither<IFailureState<V>, V>
 {
@@ -39,4 +41,23 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
 
     public ValueTask<T> MatchAsync<T>(Func<IFailureState<V>, ValueTask<T>> leftTask, Func<V, ValueTask<T>> rightTask)
         => _either.MatchAsync(leftTask, rightTask);
+
+    public Parameter<V> Clone(V? newValue = default)
+    {
+        var clonedValue = newValue ?? this.Value;
+        var clonedContext = Context.Clone();
+
+        var clonedEither = _either.Match(
+            left => new Either<IFailureState<V>, V>(left),
+            right => new Either<IFailureState<V>, V>(clonedValue)
+        );
+
+        var clonedParameter = new Parameter<V>(default(V))
+        {
+            _either = clonedEither,
+            Context = clonedContext
+        };
+
+        return clonedParameter;
+    }
 }

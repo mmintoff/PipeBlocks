@@ -136,7 +136,6 @@ public partial class StartFromPipeBlock<V>(
     private StartFromPipeBlock<V> AddBlock(IBlock<V> block)
     {
         _blocks.Add(block);
-        _logger.LogTrace("Added block: '{Type}' to pipe: '{name}'", block.ToString(), pipeName);
         s_logAddBlock(_logger, block.ToString() ?? "Unknown", pipeName, null);
         return this;
     }

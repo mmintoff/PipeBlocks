@@ -4,16 +4,19 @@ using Microsoft.Extensions.Logging;
 using MM.PipeBlocks;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 using MM.PipeBlocks.Tester;
 
 BenchmarkRunner.Run<PipelineBenchmark>();
 return;
 
 var serviceCollection = new ServiceCollection();
-serviceCollection.AddTransient<IBlockResolver<ICustomValue>, ServiceProviderBackedResolver<ICustomValue>>();
-serviceCollection.AddTransient<BlockBuilder<ICustomValue>>();
-serviceCollection.AddTransient<DummyBlock>();
-serviceCollection.AddTransient<CustomCodeBlock>();
+
+serviceCollection.AddPipeBlocks()
+    .AddTransientBlock<DummyBlock>()
+    .AddTransientBlock<CustomCodeBlock>()
+    ;
+
 serviceCollection.AddLogging(configure =>
 {
     configure.ClearProviders();
@@ -35,46 +38,28 @@ var pipe = builder
     ;
 
 pipe.Execute(new CustomValue1());
-pipe.Execute(new CustomValue1());
+pipe.Execute(new CustomValue2());
 
 
 public class MyAdapter : IAdapter<CustomValue1, CustomValue2>
 {
-    //private CustomContext? _originalContext;
-
-    //public CustomContext2 Adapt(CustomContext from)
-    //{
-    //    _originalContext = from;
-    //    return new(from.Value)
-    //    {
-    //        Step = from.Step,
-    //        CorrelationId = from.CorrelationId,
-    //        Start = DateTime.Now
-    //    };
-    //}
-
-    //public CustomContext Adapt(CustomContext2 from) => _originalContext ?? new(from.Value)
-    //{
-    //    Step = from.Step,
-    //    CorrelationId = from.CorrelationId
-    //};
-    public Parameter<CustomValue2> Adapt(Parameter<CustomValue1> from)
+    public Parameter<CustomValue2> Adapt(Parameter<CustomValue1> from, Parameter<CustomValue2>? original = null)
         => new(new CustomValue2
-            {
-                Count = from.Match(_ => 0, x => x.Count),
-                Address = string.Empty,
-                Start = DateTime.Now,
-                Step = from.Match(_ => 0, x => x.Step)
-            })
-            {
-                Context = from.Context
-            };
+           {
+               Count = from.Match(_ => 0, x => x.Count),
+               Address = string.Empty,
+               Start = DateTime.Now,
+               Step = from.Match(_ => 0, x => x.Step)
+           })
+           {
+               Context = from.Context
+           };
 
-    public Parameter<CustomValue1> Adapt(Parameter<CustomValue2> from)
+    public Parameter<CustomValue1> Adapt(Parameter<CustomValue2> from, Parameter<CustomValue1>? original = null)
         => new(new CustomValue1
             {
                 Count = from.Match(_ => 0, x => x.Count),
-                Name = string.Empty,
+                Name = original?.Match(_ => string.Empty, x => x.Name) ?? String.Empty,
                 Start = from.Match(_ => DateTime.MinValue, x => x.Start),
                 Step = from.Match(_ => 0, x => x.Step)
             })

@@ -1,8 +1,2 @@
-﻿using MM.PipeBlocks.Abstractions;
-
-namespace Loop;
+﻿namespace Loop;
 public class MyValueType { }
-public class MyContextType
-{
-    public int Counter { get; set; }
-}

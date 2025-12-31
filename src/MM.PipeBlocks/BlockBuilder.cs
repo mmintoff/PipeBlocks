@@ -9,7 +9,7 @@ namespace MM.PipeBlocks;
 /// <typeparam name="V">The type of the value in the parameter.</typeparam>
 /// <param name="resolver">The block resolver used to resolve block instances.</param>
 /// <param name="loggerFactory">The logger factory used to create loggers for blocks.</param>
-public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory loggerFactory)
+public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory loggerFactory) : IBlockBuilder<V>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="BlockBuilder{V}"/> class using the default block resolver and NoopLoggerFactory.
@@ -48,4 +48,11 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
     /// <returns>An <see cref="ILogger{X}"/> instance.</returns>
     public ILogger<X> CreateLogger<X>()
         => loggerFactory.CreateLogger<X>();
+
+    IPipeBlock<V> IBlockBuilder<V>.CreatePipe(string pipeName)
+    {
+        return CreatePipe(pipeName);
+    }
+
+    public IBlockBuilder<V2> CreateBlockBuilder<V2>() => resolver.CreateBlockBuilder<V2>();
 }

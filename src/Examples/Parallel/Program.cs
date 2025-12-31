@@ -10,14 +10,21 @@ var pipe = builder.CreatePipe("dice rolls")
                             new RandomNumberGenerationBlock(),
                             new RandomNumberGenerationBlock()
                         ],
-                        new Clone<MyValueType>(v => v.Value),
                         new Join<MyValueType>((v, pv) =>
                         {
                             foreach (var ppv in pv)
                                 Console.WriteLine($"{ppv.CorrelationId} : {String.Join(',', ppv.Context.Get<int[]>("Digits"))}");
                             v.Context.Set<int[]>("Digits", [.. pv.SelectMany(x => x.Context.Get<int[]>("Digits"))]);
                             return v;
-                        })))
+                        }),
+                        null
+                        //new Clone<MyValueType>(v =>
+                        //{
+                        //    return v.Match(
+                        //        failure => v.Value,
+                        //        success => new MyValueType());
+                        //})
+                        ))
                     ;
 
 var result = pipe.Execute(new MyValueType());
