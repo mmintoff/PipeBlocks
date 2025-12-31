@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test.BlockBuilderTests;
 
@@ -23,7 +24,7 @@ public class RunTests
 
         AssertIsFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("Run")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Run" }))
             .Then(block)
             ;
 
@@ -51,7 +52,7 @@ public class RunTests
 
         AssertIsFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -78,7 +79,7 @@ public class RunTests
 
         AssertIsFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -107,7 +108,7 @@ public class RunTests
 
         AssertIsAsyncFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -136,7 +137,7 @@ public class RunTests
 
         AssertIsAsyncFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -165,7 +166,7 @@ public class RunTests
 
         AssertIsAsyncFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -193,7 +194,7 @@ public class RunTests
 
         AssertIsAsyncFuncBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 

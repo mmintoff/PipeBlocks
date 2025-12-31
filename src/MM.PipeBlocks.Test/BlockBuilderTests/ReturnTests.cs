@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test.BlockBuilderTests;
 
@@ -43,7 +44,7 @@ public class ReturnTests
 
         AssertIsReturnBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("Return")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return" }))
             .Then(block)
             ;
 
@@ -76,7 +77,7 @@ public class ReturnTests
 
         AssertIsReturnBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("Return")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return" }))
             .Then(block)
             ;
 
@@ -109,7 +110,7 @@ public class ReturnTests
 
         AssertIsReturnBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("Return")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return" }))
             .Then(block)
             ;
 
@@ -142,7 +143,7 @@ public class ReturnTests
 
         AssertIsReturnBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("Return")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return" }))
             .Then(block)
             ;
 
@@ -172,7 +173,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             .Then(b => b.Run(v => v.Value.Counter++))
             ;
@@ -202,7 +203,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -232,7 +233,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -262,7 +263,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -292,7 +293,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -321,7 +322,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -351,7 +352,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -381,7 +382,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 
@@ -411,7 +412,7 @@ public class ReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf" }))
             .Then(block)
             ;
 

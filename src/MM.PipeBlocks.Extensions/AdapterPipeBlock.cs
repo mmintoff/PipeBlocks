@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Extensions;
@@ -11,20 +12,18 @@ namespace MM.PipeBlocks.Extensions;
 /// <remarks>
 /// Initializes a new instance of the <see cref="AdapterPipeBlock{V1, V2}"/> class.
 /// </remarks>
-/// <param name="pipeName">The name of the pipe.</param>
-/// <param name="adapter">The adapter used to convert parameters between <typeparamref name="V1"/> and <typeparamref name="V2"/>.</param>
-/// <param name="blockBuilder">The block builder used to resolve blocks.</param>
-public sealed class AdapterPipeBlock<V1, V2>(
-        string pipeName,
-        IAdapter<V1, V2> adapter,
-        BlockBuilder<V2> blockBuilder
-        ) : IPipeBlock<V1>
+public sealed class AdapterPipeBlock<V1, V2> : IPipeBlock<V1>
 {
+    protected readonly BlockBuilder<V2> Builder;
+
     private readonly string _v1Name = typeof(V1).Name,
                             _v2Name = typeof(V2).Name;
 
     private readonly List<IBlock<V2>> _blocks = [];
-    private readonly ILogger<AdapterPipeBlock<V1, V2>> _logger = blockBuilder.CreateLogger<AdapterPipeBlock<V1, V2>>();
+    private readonly PipeBlockOptions _options;
+    private readonly IAdapter<V1, V2> _adapter;
+    private readonly ILogger<AdapterPipeBlock<V1, V2>> _logger;
+    private readonly bool _hasContextConstants;
 
     private static readonly Action<ILogger, string, string, Exception?> s_switching_types = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Switching value from: {From} to: {To}");
     private static readonly Action<ILogger, string, string, Exception?> s_switched_types = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Switched value from: {From} to: {To}");
@@ -40,6 +39,33 @@ public sealed class AdapterPipeBlock<V1, V2>(
     private static readonly Action<ILogger, string, Guid, Exception?> s_async_logExecutingPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Executing pipe: '{PipeName}' asynchronously for context: {CorrelationId}");
     private static readonly Action<ILogger, string, int, Guid, Exception?> s_async_logStoppingPipe = LoggerMessage.Define<string, int, Guid>(LogLevel.Trace, default, "Stopping asynchronous pipe: '{name}' execution at step: {Step} for context: {CorrelationId}");
     private static readonly Action<ILogger, string, Guid, Exception?> s_async_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}");
+
+    /// <summary>
+    /// Initializes a new instance of the AdapterPipeBlock class, configuring the pipe block to adapt data from type V1
+    /// to type V2 using the specified adapter and block builder.
+    /// </summary>
+    /// <remarks>This constructor sets up logging for the adapter pipe block and applies any context constants
+    /// configuration specified in the options. The adapter and block builder are required for data transformation and
+    /// block construction, respectively.</remarks>
+    /// <param name="options">The options used to configure the pipe block, including context constants and pipe name settings. Cannot be
+    /// null.</param>
+    /// <param name="adapter">The adapter responsible for transforming data from type V1 to type V2. Cannot be null.</param>
+    /// <param name="blockBuilder">The block builder used to construct and configure the underlying pipe block for type V2. Cannot be null.</param>
+    public AdapterPipeBlock
+        (
+            IOptions<PipeBlockOptions> options,
+            IAdapter<V1, V2> adapter,
+            BlockBuilder<V2> blockBuilder
+        )
+    {
+        _options = options.Value;
+        _hasContextConstants = _options.ConfigureContextConstants != null;
+        _adapter = adapter;
+        Builder = blockBuilder;
+        _logger = blockBuilder.CreateLogger<AdapterPipeBlock<V1, V2>>();
+        _logger.LogInformation("Created adapter pipe: '{name}' adapting from: {V1} to: {V2}", _options.PipeName, _v1Name, _v2Name);
+    }
+
     /// <summary>
     /// Executes the blocks synchronously, starting from a specified step, with an optional context configuration.
     /// </summary>
@@ -48,9 +74,9 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// <returns>The modified parameter after executing the blocks.</returns>
     public Parameter<V1> Execute(Parameter<V1> value, Action<Context>? configureContext)
     {
-        s_logApplyingContextConfig(_logger, pipeName, null);
+        s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
-        s_logAppliedContextConfig(_logger, pipeName, null);
+        s_logAppliedContextConfig(_logger, _options.PipeName, null);
         return Execute(value);
     }
 
@@ -62,22 +88,27 @@ public sealed class AdapterPipeBlock<V1, V2>(
     public Parameter<V1> Execute(Parameter<V1> value)
     {
         s_switching_types(_logger, _v1Name, _v2Name, null);
-        var nValue = adapter.Adapt(value);
+        var nValue = _adapter.Adapt(value);
         s_switched_types(_logger, _v1Name, _v2Name, null);
-        s_sync_logExecutingPipe(_logger, pipeName, nValue.Context.CorrelationId, null);
+        s_sync_logExecutingPipe(_logger, _options.PipeName, nValue.Context.CorrelationId, null);
+        if (_hasContextConstants)
+        {
+            _options.ConfigureContextConstants!(value.Context);
+        }
+
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(nValue))
             {
-                s_sync_logStoppingPipe(_logger, pipeName, i, nValue.Context.CorrelationId, null);
+                s_sync_logStoppingPipe(_logger, _options.PipeName, i, nValue.Context.CorrelationId, null);
                 break;
             }
-            nValue = BlockExecutor.ExecuteSync(_blocks[i], nValue);
+            nValue = BlockExecutor.ExecuteSync(_blocks[i], nValue, _options.HandleExceptions);
         }
         s_switching_types(_logger, _v2Name, _v1Name, null);
-        var result = adapter.Adapt(nValue, value);
+        var result = _adapter.Adapt(nValue, value);
         s_switched_types(_logger, _v2Name, _v1Name, null);
-        s_sync_logCompletedPipe(_logger, pipeName, nValue.Context.CorrelationId, null);
+        s_sync_logCompletedPipe(_logger, _options.PipeName, nValue.Context.CorrelationId, null);
         return result;
     }
 
@@ -89,9 +120,9 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// <returns>A task representing the asynchronous operation, with the modified parameter after execution.</returns>
     public ValueTask<Parameter<V1>> ExecuteAsync(Parameter<V1> value, Action<Context>? configureContext)
     {
-        s_logApplyingContextConfig(_logger, pipeName, null);
+        s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
-        s_logAppliedContextConfig(_logger, pipeName, null);
+        s_logAppliedContextConfig(_logger, _options.PipeName, null);
         return ExecuteAsync(value);  // Return the task directly, no await
     }
 
@@ -103,23 +134,28 @@ public sealed class AdapterPipeBlock<V1, V2>(
     public async ValueTask<Parameter<V1>> ExecuteAsync(Parameter<V1> value)
     {
         s_switching_types(_logger, _v1Name, _v2Name, null);
-        var nValue = adapter.Adapt(value);
+        var nValue = _adapter.Adapt(value);
         s_switched_types(_logger, _v1Name, _v2Name, null);
-        s_async_logExecutingPipe(_logger, pipeName, nValue.CorrelationId, null);
+        s_async_logExecutingPipe(_logger, _options.PipeName, nValue.CorrelationId, null);
+        if (_hasContextConstants)
+        {
+            _options.ConfigureContextConstants!(value.Context);
+        }
+
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(nValue))
             {
-                s_async_logStoppingPipe(_logger, pipeName, i, nValue.CorrelationId, null);
+                s_async_logStoppingPipe(_logger, _options.PipeName, i, nValue.CorrelationId, null);
                 break;
             }
-            nValue = await BlockExecutor.ExecuteAsync(_blocks[i], nValue);
+            nValue = await BlockExecutor.ExecuteAsync(_blocks[i], nValue, _options.HandleExceptions);
         }
         s_switching_types(_logger, _v2Name, _v1Name, null);
-        var result = adapter.Adapt(nValue, value);
+        var result = _adapter.Adapt(nValue, value);
         s_switched_types(_logger, _v2Name, _v1Name, null);
-        s_async_logCompletedPipe(_logger, pipeName, nValue.CorrelationId, null);
-        return adapter.Adapt(nValue);
+        s_async_logCompletedPipe(_logger, _options.PipeName, nValue.CorrelationId, null);
+        return _adapter.Adapt(nValue);
     }
 
     /// <summary>
@@ -137,7 +173,7 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// <returns>The current <see cref="AdapterPipeBlock{V1, V2}"/> instance.</returns>
     public AdapterPipeBlock<V1, V2> Then<X>()
         where X : IBlock<V2>
-        => AddBlock(blockBuilder.ResolveInstance<X>());
+        => AddBlock(Builder.ResolveInstance<X>());
 
     /// <summary>
     /// Adds a block to the pipe to be executed after the current one.
@@ -145,12 +181,12 @@ public sealed class AdapterPipeBlock<V1, V2>(
     /// <param name="func">A function that resolves the next block.</param>
     /// <returns>The current <see cref="AdapterPipeBlock{V1, V2}"/> instance.</returns>
     public AdapterPipeBlock<V1, V2> Then(Func<BlockBuilder<V2>, IBlock<V2>> func)
-        => AddBlock(func(blockBuilder));
+        => AddBlock(func(Builder));
 
     private AdapterPipeBlock<V1, V2> AddBlock(IBlock<V2> block)
     {
         _blocks.Add(block);
-        s_logAddBlock(_logger, block.ToString() ?? "Unknown", pipeName, null);
+        s_logAddBlock(_logger, block.ToString() ?? "Unknown", _options.PipeName, null);
         return this;
     }
 
@@ -162,7 +198,7 @@ public sealed class AdapterPipeBlock<V1, V2>(
         _ => true,
         _ => false);
 
-    public override string ToString() => pipeName;
+    public override string ToString() => _options.PipeName;
 }
 
 /// <summary>
@@ -207,7 +243,7 @@ public static partial class BuilderExtensions
     /// <typeparam name="V2">The value type associated with the target parameter.</typeparam>
     /// <returns>A new instance of <see cref="AdapterPipeBlock{V1, V2}"/> configured with the provided parameters.</returns>
     public static AdapterPipeBlock<V1, V2> CreatePipe<V1, V2>(this IBlockBuilder<V1> builder,
-        string pipeName,
+        IOptions<PipeBlockOptions> options,
         IAdapter<V1, V2> adapter)
-    => new(pipeName, adapter, (BlockBuilder<V2>)builder.CreateBlockBuilder<V2>());
+    => new(options, adapter, (BlockBuilder<V2>)builder.CreateBlockBuilder<V2>());
 }

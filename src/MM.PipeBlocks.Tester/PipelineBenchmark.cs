@@ -2,6 +2,7 @@
 using BenchmarkDotNet.Diagnosers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
 using MM.PipeBlocks.Extensions.DependencyInjection;
@@ -13,7 +14,8 @@ namespace MM.PipeBlocks.Tester;
 [DisassemblyDiagnoser(printSource: true)]
 public class PipelineBenchmark
 {
-    private IPipeBlock<CustomValue1> _pipe;
+    private IPipeBlock<CustomValue1> _pipe1;
+    private IPipeBlock<CustomValue1> _pipe2;
     private CustomValue1 _value = new()
     {
         Count = 57,
@@ -41,25 +43,31 @@ public class PipelineBenchmark
 
         var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
 
-        var adapterPipe = builder.CreatePipe("adapterPipe", new MyAdapter())
+        var adapterPipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "adapterPipe" }), new MyAdapter())
             .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
             ;
 
-        var startFromPipe = builder.CreatePipe("steppedPipe", v => v.Value.Step)
+        var startFromPipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "steppedPipe" }), v => v.Value.Step)
             .Then(builder.Run(c => { _ = 1 + 1; }))
             .Then(builder.Run(c => { _ = 1 * 1; }))
             .Then(builder.Run(c => { _ = 1 / 1; }))
             .Then(builder.Run(c => { _ = 1 - 1; }))
             ;
 
-        _pipe = builder
-            .CreatePipe("mainPipe")
+        _pipe1 = builder
+            .CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Performance Pipe without Exception Handling" }))
             .Then(startFromPipe)
             .Then(b => b.Run(Do))
             .Then(b => b.Run(DoAsync))
             .Then(b => b.Run(DoAsync2))
-            //.Then(b => b.Run(Fibonnaci))
-            //.Then(b => b.Run(PrimeCheck))
+            ;
+
+        _pipe2 = builder
+            .CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Performance Pipe with Exception Handling" , HandleExceptions = true}))
+            .Then(startFromPipe)
+            .Then(b => b.Run(Do))
+            .Then(b => b.Run(DoAsync))
+            .Then(b => b.Run(DoAsync2))
             ;
     }
 
@@ -102,10 +110,18 @@ public class PipelineBenchmark
     }
 
     [Benchmark]
-    public Parameter<CustomValue1> SyncRegularExecution()
-        => _pipe.Execute(_value);
+    public Parameter<CustomValue1> SyncRegularExecution_no_error_handling()
+        => _pipe1.Execute(_value);
 
     [Benchmark]
-    public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution()
-        => await _pipe.ExecuteAsync(_value);
+    public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution_no_error_handling()
+        => await _pipe1.ExecuteAsync(_value);
+
+    [Benchmark]
+    public Parameter<CustomValue1> SyncRegularExecution_error_handling()
+        => _pipe2.Execute(_value);
+
+    [Benchmark]
+    public async ValueTask<Parameter<CustomValue1>> AsyncRegularExecution_error_handling()
+        => await _pipe2.ExecuteAsync(_value);
 }

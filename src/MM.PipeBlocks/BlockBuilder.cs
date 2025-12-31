@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Internal;
 
@@ -27,10 +28,10 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
     /// <summary>
     /// Creates a new <see cref="PipeBlock{V}"/> with the specified name.
     /// </summary>
-    /// <param name="pipeName">The name of the pipe.</param>
+    /// <param name="options"></param>
     /// <returns>A new instance of <see cref="PipeBlock{V}"/>.</returns>
-    public PipeBlock<V> CreatePipe(string pipeName)
-        => new(pipeName, this);
+    public PipeBlock<V> CreatePipe(IOptions<PipeBlockOptions> options)
+        => new(options, this);
 
     /// <summary>
     /// Resolves an instance of the specified block type using the configured resolver.
@@ -49,9 +50,9 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
     public ILogger<X> CreateLogger<X>()
         => loggerFactory.CreateLogger<X>();
 
-    IPipeBlock<V> IBlockBuilder<V>.CreatePipe(string pipeName)
+    IPipeBlock<V> IBlockBuilder<V>.CreatePipe(IOptions<PipeBlockOptions> options)
     {
-        return CreatePipe(pipeName);
+        return CreatePipe(options);
     }
 
     public IBlockBuilder<V2> CreateBlockBuilder<V2>() => resolver.CreateBlockBuilder<V2>();

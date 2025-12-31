@@ -15,6 +15,10 @@ public class TryCatchBlock<V>(
     IBlock<V>? finallyBlock = null
 ) : ISyncBlock<V>, IAsyncBlock<V>
 {
+    private static readonly Action<ILogger, Guid, string, Exception?> s_failure_occurred = LoggerMessage.Define<Guid, string>(LogLevel.Trace, default, "Failure occurred executing {CorrelationId} with '{FailureReason}'");
+    private static readonly Action<ILogger, Guid, string, Exception?> s_exception_occurred = LoggerMessage.Define<Guid, string>(LogLevel.Trace, default, "Exception occurred executing {CorrelationId} with '{ExceptionMessage}'");
+
+
     /// <summary>
     /// Executes the block synchronously, applying try-catch-finally behavior.
     /// Logs and redirects to the catch or finally blocks if necessary.
@@ -26,12 +30,12 @@ public class TryCatchBlock<V>(
         bool shouldFlip = false;
         try
         {
-            value = BlockExecutor.ExecuteSync(tryBlock, value);
+            value = BlockExecutor.ExecuteSync(tryBlock, value, false);
             value.Match(
                 failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", value.Context.CorrelationId, failure.FailureReason);
+                    s_failure_occurred(logger, value.Context.CorrelationId, failure.FailureReason ?? "Unknown", null);
                     value = FlipExecute(shouldFlip, catchBlock, value);
                 },
                 _ => { });
@@ -39,7 +43,7 @@ public class TryCatchBlock<V>(
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", value.Context.CorrelationId);
+            s_exception_occurred(logger, value.Context.CorrelationId, ex.Message, ex);
             value = FlipExecute(shouldFlip, catchBlock, value);
         }
         finally
@@ -54,7 +58,7 @@ public class TryCatchBlock<V>(
             if (block != null)
             {
                 value.Context.IsFlipped = shouldFlip;
-                var result = BlockExecutor.ExecuteSync(block, value);
+                var result = BlockExecutor.ExecuteSync(block, value, false);
                 value.Context.IsFlipped = !shouldFlip;
                 return result;
             }
@@ -74,12 +78,12 @@ public class TryCatchBlock<V>(
 
         try
         {
-            value = await BlockExecutor.ExecuteAsync(tryBlock, value);
+            value = await BlockExecutor.ExecuteAsync(tryBlock, value, false);
             await value.MatchAsync(
                 async failure =>
                 {
                     shouldFlip = true;
-                    logger.LogError("Failure occurred executing {CorrelationId} with '{FailureReason}'", value.Context.CorrelationId, failure.FailureReason);
+                    s_failure_occurred(logger, value.Context.CorrelationId, failure.FailureReason ?? "Unknown", null);
                     value = await FlipExecuteAsync(shouldFlip, catchBlock, value);
                 },
                 _ => ValueTask.CompletedTask);
@@ -87,7 +91,7 @@ public class TryCatchBlock<V>(
         catch (Exception ex)
         {
             shouldFlip = true;
-            logger.LogError(ex, "Exception occurred executing {CorrelationId}", value.Context.CorrelationId);
+            s_exception_occurred(logger, value.Context.CorrelationId, ex.Message, ex);
             value = await FlipExecuteAsync(shouldFlip, catchBlock, value);
         }
         finally
@@ -102,7 +106,7 @@ public class TryCatchBlock<V>(
             if (block != null)
             {
                 value.Context.IsFlipped = shouldFlip;
-                var result = await BlockExecutor.ExecuteAsync(block, value);
+                var result = await BlockExecutor.ExecuteAsync(block, value, false);
                 value.Context.IsFlipped = !shouldFlip;
                 return result;
             }

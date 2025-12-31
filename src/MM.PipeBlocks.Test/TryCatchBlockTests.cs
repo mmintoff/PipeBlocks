@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks.Abstractions;
 using Polly;
 
 namespace MM.PipeBlocks.Test;
@@ -51,26 +52,20 @@ public class TryCatchBlockTests
     {
         var builder = new BlockBuilder<MyValue>();
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
+        Parameter<MyValue>? result = null;
 
         bool executedCatch = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryCatch(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedCatch = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryCatch(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedCatch = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            _ = block.Execute(initialValue);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        result = block.Execute(initialValue);
 
         Assert.True(executedCatch);
         Assert.Equal(initialValue.Identifier, sniffedId);
@@ -108,22 +103,15 @@ public class TryCatchBlockTests
         bool executedCatch = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryCatch(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedCatch = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryCatch(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedCatch = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            _ = await block.ExecuteAsync(initialValue);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await block.ExecuteAsync(initialValue);
 
         Assert.True(executedCatch);
         Assert.Equal(initialValue.Identifier, sniffedId);
@@ -158,17 +146,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryCatch<Exception_CodeBlock, SniffCatchBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryCatch<Exception_CodeBlock, SniffCatchBlock>();
 
-            _ = block.Execute(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = block.Execute(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedCatch", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -180,25 +161,18 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var pipe = builder.CreatePipe("test trycatch async")
-                        .Then(b => b.TryCatch(
-                            new Exception_AsyncCodeBlock(),
-                            b.Run(async v =>
-                            {
-                                v.Context.Set("ExecutedCatch", true);
-                                v.Context.Set("SniffedId", v.Value.Identifier);
-                                await ValueTask.CompletedTask;
-                            })));
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test trycatch async" }))
+                    .Then(b => b.TryCatch(
+                        new Exception_AsyncCodeBlock(),
+                        b.Run(async v =>
+                        {
+                            v.Context.Set("ExecutedCatch", true);
+                            v.Context.Set("SniffedId", v.Value.Identifier);
+                            await ValueTask.CompletedTask;
+                        })));
 
-            _ = await pipe.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await pipe.ExecuteAsync(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedCatch", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -210,17 +184,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryCatch<Exception_AsyncCodeBlock, SniffCatchAsyncBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryCatch<Exception_AsyncCodeBlock, SniffCatchAsyncBlock>();
 
-            _ = await block.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await block.ExecuteAsync(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedCatch", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -238,22 +205,15 @@ public class TryCatchBlockTests
         bool executedFinally = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryFinally(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedFinally = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryFinally(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedFinally = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            var result = block.Execute(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = block.Execute(value);
 
         Assert.True(executedFinally);
         Assert.Equal(initialValue.Identifier, sniffedId);
@@ -293,22 +253,15 @@ public class TryCatchBlockTests
         bool executedFinally = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryFinally(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedFinally = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryFinally(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedFinally = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            var result = await block.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = await block.ExecuteAsync(value);
 
         Assert.True(executedFinally);
         Assert.Equal(initialValue.Identifier, sniffedId);
@@ -344,17 +297,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryFinally<Exception_CodeBlock, SniffFinallyBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryFinally<Exception_CodeBlock, SniffFinallyBlock>();
 
-            var result = block.Execute(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = block.Execute(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedFinally", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -366,24 +312,17 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var pipe = builder.TryFinally(
-                            new Exception_AsyncCodeBlock(),
-                            new AsyncFuncBlock<MyValue>(v =>
-                            {
-                                v.Context.Set("ExecutedFinally", true);
-                                v.Context.Set("SniffedId", v.Value.Identifier);
-                                return ValueTask.CompletedTask;
-                            }));
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.TryFinally(
+                        new Exception_AsyncCodeBlock(),
+                        new AsyncFuncBlock<MyValue>(v =>
+                        {
+                            v.Context.Set("ExecutedFinally", true);
+                            v.Context.Set("SniffedId", v.Value.Identifier);
+                            return ValueTask.CompletedTask;
+                        }));
 
-            _ = await pipe.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await pipe.ExecuteAsync(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedFinally", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -395,17 +334,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryFinally<Exception_AsyncCodeBlock, SniffFinallyAsyncBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryFinally<Exception_AsyncCodeBlock, SniffFinallyAsyncBlock>();
 
-            _ = await block.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await block.ExecuteAsync(value);
 
         Assert.True(value.Context.TryGet<bool>("ExecutedFinally", out var ctxExecuted) && ctxExecuted);
         Assert.Equal(initialValue.Identifier, value.Context.TryGet<Guid>("SniffedId", out var ctxSniffedId) ? ctxSniffedId : Guid.Empty);
@@ -424,27 +356,20 @@ public class TryCatchBlockTests
              executedFinally = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryCatchFinally(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedCatch = true;
-                    sniffedId = v.Value.Identifier;
-                }),
-                builder.Run(v =>
-                {
-                    executedFinally = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryCatchFinally(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedCatch = true;
+                sniffedId = v.Value.Identifier;
+            }),
+            builder.Run(v =>
+            {
+                executedFinally = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            _ = block.Execute(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = block.Execute(value);
 
         Assert.True(executedCatch);
         Assert.True(executedFinally);
@@ -493,27 +418,20 @@ public class TryCatchBlockTests
              executedFinally = false;
         Guid sniffedId = Guid.NewGuid();
 
-        try
-        {
-            var block = builder.TryCatchFinally(
-                new Exception_CodeBlock(),
-                new FuncBlock<MyValue>(v =>
-                {
-                    executedCatch = true;
-                    sniffedId = v.Value.Identifier;
-                }),
-                builder.Run(v =>
-                {
-                    executedFinally = true;
-                    sniffedId = v.Value.Identifier;
-                }));
+        var block = builder.TryCatchFinally(
+            new Exception_CodeBlock(),
+            new FuncBlock<MyValue>(v =>
+            {
+                executedCatch = true;
+                sniffedId = v.Value.Identifier;
+            }),
+            builder.Run(v =>
+            {
+                executedFinally = true;
+                sniffedId = v.Value.Identifier;
+            }));
 
-            _ = await block.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        _ = await block.ExecuteAsync(value);
 
         Assert.True(executedCatch);
         Assert.True(executedFinally);
@@ -557,17 +475,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryCatchFinally<Exception_CodeBlock, SniffCatchBlock, SniffFinallyBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryCatchFinally<Exception_CodeBlock, SniffCatchBlock, SniffFinallyBlock>();
 
-            var result = block.Execute(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = block.Execute(value);
 
         Assert.True(value.Context.Get<bool>("ExecutedCatch"));
         Assert.True(value.Context.Get<bool>("ExecutedFinally"));
@@ -580,30 +491,23 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var pipe = builder.TryCatchFinally(
-                            new Exception_AsyncCodeBlock(),
-                            builder.Run(v =>
-                            {
-                                v.Context.Set("ExecutedCatch", true);
-                                v.Context.Set("SniffedId", v.Value.Identifier);
-                                return ValueTask.CompletedTask;
-                            }),
-                            builder.Run(v =>
-                            {
-                                v.Context.Set("ExecutedFinally", true);
-                                v.Context.Set("SniffedId", v.Value.Identifier);
-                                return ValueTask.CompletedTask;
-                            }));
+        var builder = new BlockBuilder<MyValue>();
+        var pipe = builder.TryCatchFinally(
+                        new Exception_AsyncCodeBlock(),
+                        builder.Run(v =>
+                        {
+                            v.Context.Set("ExecutedCatch", true);
+                            v.Context.Set("SniffedId", v.Value.Identifier);
+                            return ValueTask.CompletedTask;
+                        }),
+                        builder.Run(v =>
+                        {
+                            v.Context.Set("ExecutedFinally", true);
+                            v.Context.Set("SniffedId", v.Value.Identifier);
+                            return ValueTask.CompletedTask;
+                        }));
 
-            var result = await pipe.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = await pipe.ExecuteAsync(value);
 
         Assert.True(value.Context.Get<bool>("ExecutedCatch"));
         Assert.True(value.Context.Get<bool>("ExecutedFinally"));
@@ -616,17 +520,10 @@ public class TryCatchBlockTests
         var initialValue = new MyValue { Identifier = Guid.NewGuid() };
         var value = new Parameter<MyValue>(initialValue);
 
-        try
-        {
-            var builder = new BlockBuilder<MyValue>();
-            var block = builder.TryCatchFinally<Exception_AsyncCodeBlock, SniffCatchAsyncBlock, SniffFinallyAsyncBlock>();
+        var builder = new BlockBuilder<MyValue>();
+        var block = builder.TryCatchFinally<Exception_AsyncCodeBlock, SniffCatchAsyncBlock, SniffFinallyAsyncBlock>();
 
-            var result = await block.ExecuteAsync(value);
-        }
-        catch (Exception ex)
-        {
-            Assert.Equal("Intentional", ex.Message);
-        }
+        var result = await block.ExecuteAsync(value);
 
         Assert.True(value.Context.Get<bool>("ExecutedCatch"));
         Assert.True(value.Context.Get<bool>("ExecutedFinally"));

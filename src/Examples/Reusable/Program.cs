@@ -1,8 +1,10 @@
-﻿using MM.PipeBlocks;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 using Reusable;
 
 var builder = new BlockBuilder<ICustomValue>();
-var pipe = builder.CreatePipe("Generic pipe")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Generic pipe" }))
             .Then<GenericCodeBlock>()
             ;
 

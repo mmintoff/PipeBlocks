@@ -1,9 +1,11 @@
-﻿using MM.PipeBlocks;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
 using Parallel;
 
 var builder = new BlockBuilder<MyValueType>();
-var pipe = builder.CreatePipe("dice rolls")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "dice rolls" }))
                     .Then(b => b.Parallelize(
                         [
                             new RandomNumberGenerationBlock(),

@@ -1,5 +1,6 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test.BlockBuilderTests;
 public class AsyncIfThenTests
@@ -24,7 +25,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -57,7 +58,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -90,7 +91,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -121,7 +122,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -153,7 +154,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -182,7 +183,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -212,7 +213,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 
@@ -240,7 +241,7 @@ public class AsyncIfThenTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("IfThenElse")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "IfThenElse" }))
             .Then(block)
             ;
 

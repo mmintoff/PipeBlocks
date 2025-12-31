@@ -1,9 +1,10 @@
-﻿using MM.PipeBlocks;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks;
 using MM.PipeBlocks.Abstractions;
 using TryCatch;
 
 var builder = new BlockBuilder<MyValueType>();
-var pipe = builder.CreatePipe("try catch pipe")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "try catch pipe" }))
                 .Then(b => b.TryCatch<ExpectedFailureBlock, HandleFailureBlock>())
                 .Then(b => b.Run(() => Console.WriteLine("Should not be executing")))
                 ;

@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test;
 
@@ -15,7 +16,7 @@ public class SwitchBlockTests
         var value = new Parameter<MyValue>(initialValue);
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
                 v.Context.Get<int>("Step") switch
                 {
@@ -44,7 +45,7 @@ public class SwitchBlockTests
         var value = new Parameter<MyValue>(initialValue);
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
                 v.Value.Counter switch
                 {
@@ -75,7 +76,7 @@ public class SwitchBlockTests
         });
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
                 v.Context.Get<int>("Step") switch
                 {
@@ -113,7 +114,7 @@ public class SwitchBlockTests
         var value = new Parameter<MyValue>(initialValue);
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
             new ValueTask<IBlock<MyValue>>(v.Context.Get<int>("Step") switch
             {
@@ -143,7 +144,7 @@ public class SwitchBlockTests
         var value = new Parameter<MyValue>(initialValue);
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
             new ValueTask<IBlock<MyValue>>(v.Context.Get<int>("Step") switch
             {
@@ -171,7 +172,7 @@ public class SwitchBlockTests
         var value = new Parameter<MyValue>(initialValue);
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
             new ValueTask<IBlock<MyValue>>(v.Value.Counter switch
             {
@@ -201,7 +202,7 @@ public class SwitchBlockTests
         });
 
         var builder = new BlockBuilder<MyValue>();
-        var pipe = builder.CreatePipe("test")
+        var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "test" }))
             .Then(b => b.Switch(v =>
                 new ValueTask<IBlock<MyValue>>(v.Value.Counter switch
                 {

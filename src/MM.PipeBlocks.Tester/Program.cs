@@ -1,6 +1,7 @@
 ﻿using BenchmarkDotNet.Running;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
 using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
@@ -29,7 +30,7 @@ var serviceProvider = serviceCollection.BuildServiceProvider();
 var builder = serviceProvider.GetRequiredService<BlockBuilder<ICustomValue>>();
 
 var pipe = builder
-    .CreatePipe("testPipe")
+    .CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "testPipe" }))
     .Then(b => b.Run(_ => Console.WriteLine("1")))
     //.Then(b => b.Return())
     .Then<DummyBlock>()

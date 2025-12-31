@@ -1,9 +1,11 @@
-﻿using MM.PipeBlocks;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 using MM.PipeBlocks.Extensions;
 using StartFrom;
 
 var builder = new BlockBuilder<MyValue>();
-var pipe = builder.CreatePipe("startfrom pipe", v => v.Context.Get<int>("Step"))
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "startfrom pipe" }), v => v.Context.Get<int>("Step"))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓░░░░░░░░] 20%")))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓▓▓░░░░░░] 40%")))
                 .Then(b => b.Run(() => Console.WriteLine("Progress [▓▓▓▓▓▓░░░░] 60%")))

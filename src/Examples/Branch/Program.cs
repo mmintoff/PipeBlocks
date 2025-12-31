@@ -1,8 +1,10 @@
 ﻿using Branch;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 var builder = new BlockBuilder<Bet>();
-var pipe = builder.CreatePipe("tax pipe")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "tax pipe" }))
             .Then(b => b.Switch(v => v.Value.Country switch
             {
                 Country.Nigeria => b.ResolveInstance<NigerianTaxRateBlock>(),

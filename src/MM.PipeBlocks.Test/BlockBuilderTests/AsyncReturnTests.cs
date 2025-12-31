@@ -1,4 +1,5 @@
-﻿using MM.PipeBlocks.Abstractions;
+﻿using Microsoft.Extensions.Options;
+using MM.PipeBlocks.Abstractions;
 
 namespace MM.PipeBlocks.Test.BlockBuilderTests;
 
@@ -65,7 +66,7 @@ public class AsyncReturnTests
             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("Return_V_Action")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return_V_Action" }))
             .Then(block)
             ;
 
@@ -101,7 +102,7 @@ public class AsyncReturnTests
             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("Return_V_Func_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return_V_Func_V" }))
             .Then(block)
             ;
 
@@ -137,7 +138,7 @@ public class AsyncReturnTests
             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("Return_V_Func_ValueTask")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return_V_Func_ValueTask" }))
             .Then(block)
             ;
 
@@ -173,7 +174,7 @@ public class AsyncReturnTests
             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("Return_V_Func_ValueTask_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "Return_V_Func_ValueTask_V" }))
             .Then(block)
             ;
 
@@ -202,7 +203,7 @@ public class AsyncReturnTests
 
         AssertIsBranchBlock(block);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_V" }))
             .Then(block)
             .Then(b => b.Run(v => v.Context.Increment<int>("Counter")))
             ;
@@ -239,7 +240,7 @@ public class AsyncReturnTests
             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Action")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_V_Action" }))
             .Then(block)
             ;
 
@@ -273,7 +274,7 @@ public class AsyncReturnTests
                     ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                     : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_V_Func_V" }))
             .Then(block)
             ;
 
@@ -307,7 +308,7 @@ public class AsyncReturnTests
                     ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                     : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_ValueTask")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_V_Func_ValueTask" }))
             .Then(block)
             ;
 
@@ -341,7 +342,7 @@ public class AsyncReturnTests
                             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_V_Func_ValueTask_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_V_Func_ValueTask_V" }))
             .Then(block)
             ;
 
@@ -374,7 +375,7 @@ public class AsyncReturnTests
                             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Action")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_Async_V_Action" }))
             .Then(block)
             ;
 
@@ -408,7 +409,7 @@ public class AsyncReturnTests
                             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_V")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_Async_V_Func_V" }))
             .Then(block)
             ;
 
@@ -442,7 +443,7 @@ public class AsyncReturnTests
                             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_ValueTask")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_Async_V_Func_ValueTask" }))
             .Then(block)
             ;
 
@@ -476,7 +477,7 @@ public class AsyncReturnTests
                             ? new Parameter<MyValue>(new DefaultFailureState<MyValue>(initialValue))
                             : new Parameter<MyValue>(initialValue);
 
-        var pipe = _blockBuilder.CreatePipe("ReturnIf_Async_V_Func_ValueTask")
+        var pipe = _blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "ReturnIf_Async_V_Func_ValueTask" }))
             .Then(block)
             ;
 

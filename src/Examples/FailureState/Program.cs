@@ -1,8 +1,10 @@
 ﻿using FailureState;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MM.PipeBlocks.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 
 var serviceCollection = new ServiceCollection();
 serviceCollection
@@ -20,7 +22,7 @@ serviceCollection.AddLogging(configure =>
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
 var builder = serviceProvider.GetRequiredService<BlockBuilder<MyValueType>>();
-var pipe = builder.CreatePipe("failure state example pipe")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "failure state example pipe" }))
                 .Then<FirstBlock>()
                 .Then<SecondBlock>()
                 .Then<ThirdBlock>()

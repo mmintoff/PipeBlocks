@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
 using System.Runtime.CompilerServices;
 
@@ -19,8 +20,9 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// </summary>
     protected readonly List<IBlock<V>> _blocks = [];
 
-    private readonly string _pipeName;
+    private readonly PipeBlockOptions _options;
     private readonly ILogger<PipeBlock<V>> _logger;
+    private readonly bool _hasContextConstants;
 
     private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
     private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
@@ -37,14 +39,15 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <summary>
     /// Initializes a new instance of the <see cref="PipeBlock{V}"/> class with a given name and builder.
     /// </summary>
-    /// <param name="pipeName">The name of the pipe, used for logging.</param>
+    /// <param name="options">The options containing the pipe configuration.</param>
     /// <param name="blockBuilder">The builder used to resolve additional blocks.</param>
-    public PipeBlock(string pipeName, BlockBuilder<V> blockBuilder)
+    public PipeBlock(IOptions<PipeBlockOptions> options, BlockBuilder<V> blockBuilder)
     {
-        _pipeName = pipeName;
+        _options = options.Value;
+        _hasContextConstants = _options.ConfigureContextConstants != null;
         Builder = blockBuilder;
         _logger = blockBuilder.CreateLogger<PipeBlock<V>>();
-        _logger.LogInformation("Created pipe: '{name}'", _pipeName);
+        _logger.LogInformation("Created pipe: '{name}'", _options.PipeName);
     }
 
     /// <summary>
@@ -55,9 +58,9 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <returns>The updated parameter after pipeline execution.</returns>
     public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
     {
-        s_logApplyingContextConfig(_logger, _pipeName, null);
+        s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
-        s_logAppliedContextConfig(_logger, _pipeName, null);
+        s_logAppliedContextConfig(_logger, _options.PipeName, null);
         return Execute(value);
     }
 
@@ -68,18 +71,23 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <returns>The updated context after pipeline execution.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        s_sync_logExecutingPipe(_logger, _pipeName, value.Context.CorrelationId, null);
+        s_sync_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
+        if(_hasContextConstants)
+        {
+            _options.ConfigureContextConstants!(value.Context);
+        }
+
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                s_sync_logStoppingPipe(_logger, _pipeName, i, value.Context.CorrelationId, null);
+                s_sync_logStoppingPipe(_logger, _options.PipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
-            value = BlockExecutor.ExecuteSync(_blocks[i], value);
+            value = BlockExecutor.ExecuteSync(_blocks[i], value, _options.HandleExceptions);
         }
-        s_sync_logCompletedPipe(_logger, _pipeName, value.Context.CorrelationId, null);
+        s_sync_logCompletedPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
         return value;
     }
 
@@ -91,9 +99,9 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
     {
-        s_logApplyingContextConfig(_logger, _pipeName, null);
+        s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
-        s_logAppliedContextConfig(_logger, _pipeName, null);
+        s_logAppliedContextConfig(_logger, _options.PipeName, null);
         return ExecuteAsync(value);  // Return the task directly, no await
     }
 
@@ -104,23 +112,24 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        s_async_logExecutingPipe(_logger, _pipeName, value.Context.CorrelationId, null);
+        s_async_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
+        if (_hasContextConstants)
+        {
+            _options.ConfigureContextConstants!(value.Context);
+        }
+
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(value))
             {
-                s_async_logStoppingPipe(_logger, _pipeName, i, value.Context.CorrelationId, null);
+                s_async_logStoppingPipe(_logger, _options.PipeName, i, value.Context.CorrelationId, null);
                 break;
             }
 
-            var task = BlockExecutor.ExecuteAsync(_blocks[i], value);
-            value = task.IsCompletedSuccessfully
-                ? task.Result
-                : task.IsCompleted
-                    ? task.GetAwaiter().GetResult()
-                    : await task;
+            var task = BlockExecutor.ExecuteAsync(_blocks[i], value, _options.HandleExceptions);
+            value = task.IsCompletedSuccessfully ? task.Result : await task;
         }
-        s_async_logCompletedPipe(_logger, _pipeName, value.Context.CorrelationId, null);
+        s_async_logCompletedPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
         return value;
     }
 
@@ -152,7 +161,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <summary>
     /// Returns the name of the pipe.
     /// </summary>
-    public override string ToString() => _pipeName;
+    public override string ToString() => _options.PipeName;
 
     /// <summary>
     /// Adds a block to the internal list and logs the operation.
@@ -162,7 +171,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     protected PipeBlock<V> AddBlock(IBlock<V> block)
     {
         _blocks.Add(block);
-        s_logAddBlock(_logger, block.ToString() ?? "Unknown", _pipeName, null);
+        s_logAddBlock(_logger, block.ToString() ?? "Unknown", _options.PipeName, null);
         return this;
     }
 

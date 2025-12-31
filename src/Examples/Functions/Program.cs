@@ -1,8 +1,10 @@
 ﻿using Functions;
+using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
+using MM.PipeBlocks.Abstractions;
 
 var builder = new BlockBuilder<MyValue>();
-var pipe = builder.CreatePipe("func pipe")
+var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "func pipe" }))
             .Then(b => b.Run(v => v.Value.Fibonacci = Fibonacci(v.Context.Get<int>("N"))))
             ;
 
