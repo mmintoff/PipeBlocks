@@ -19,6 +19,13 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
         : this(new DefaultBlockResolver<V>(), new NoopLoggerFactory()) { }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="BlockBuilder{V}"/> class using a block resolver and NoopLoggerFactory.
+    /// </summary>
+    /// <param name="resolver">The block resolver used to resolve block instances.</param>
+    public BlockBuilder(IBlockResolver<V> resolver)
+        : this(resolver, new NoopLoggerFactory()) { }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="BlockBuilder{V}"/> class using the default block resolver.
     /// </summary>
     /// <param name="loggerFactory">The logger factory used to create loggers.</param>

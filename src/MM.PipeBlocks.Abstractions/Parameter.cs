@@ -20,6 +20,15 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
         Context.IsFinished = true;
     }
 
+    public void SignalBreak(string failureReason)
+    {
+        Context.IsFinished = true;
+        _either = new Either<IFailureState<V>, V>(new DefaultFailureState<V>(Value)
+        {
+            CorrelationId = Context.CorrelationId
+        });
+    }
+
     public void SignalBreak(IFailureState<V> failureState)
     {
         Context.IsFinished = true;

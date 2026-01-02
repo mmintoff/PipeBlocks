@@ -1,19 +1,11 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Extensions.DependencyInjection;
 
 namespace MM.PipeBlocks.Tester;
-
-public sealed record Request(int Id, string Name);
-public sealed record Response(int Value, bool IsValid);
-
-public enum Scenario
-{
-    Happy,
-    Throw,
-    BadResponse
-}
 
 [MemoryDiagnoser]
 [ThreadingDiagnoser]
@@ -34,6 +26,17 @@ public class OverheadBenchmark
     [GlobalSetup]
     public void Setup()
     {
+        var services = new ServiceCollection();
+        services.AddTransient<IOB_Service, OB_Service>();
+        services.AddPipeBlocks()
+            .AddTransientBlock<OB_AsyncStep1>()
+            .AddTransientBlock<OB_AsyncStep2>()
+            .AddTransientBlock<OB_Validation1>()
+            .AddTransientBlock<OB_Validation2>()
+            ;
+
+        var provider = services.BuildServiceProvider();
+
         _request = Scenario switch
         {
             Scenario.Happy => new Request(1, "ok"),
@@ -42,38 +45,18 @@ public class OverheadBenchmark
             _ => throw new InvalidOperationException()
         };
 
-        BlockBuilder<Request> blockBuilder = new BlockBuilder<Request>();
-        _pipe = blockBuilder.CreatePipe(Options.Create(new PipeBlockOptions
-        {
-            PipeName = "Performance Benchmark Pipe",
-            HandleExceptions = HandleExceptions
-        }))
-        .Then(b => b.Run(async v =>
-        {
-            var v1 = await AsyncStep1(v.Value);
-            v.Context.Set("v1", v1);
-        }))
-        .Then(b => b.Run(v =>
-        {
-            if (v.Context.Get<int>("v1") % 2 == 1)
-                v.SignalBreak(new DefaultFailureState<Request>(v.Value)
-                {
-                    FailureReason = "Step1 failure"
-                });
-        }))
-        .Then(b => b.Run(async v =>
-        {
-            var v2 = await AsyncStep2(v.Value);
-            v.Context.Set("v2", v2);
-        }))
-        .Then(b => b.Run(v =>
-        {
-            if (String.IsNullOrEmpty(v.Context.Get<string>("v2")))
-                v.SignalBreak(new DefaultFailureState<Request>(v.Value)
-                {
-                    FailureReason = "Step2 failure"
-                });
-        }));
+        var blockBuilder = provider.GetRequiredService<BlockBuilder<Request>>();
+        _pipe = blockBuilder
+            .CreatePipe(Options.Create(new PipeBlockOptions
+            {
+                PipeName = "Performance Benchmark Pipe",
+                HandleExceptions = HandleExceptions
+            }))
+            .Then<OB_AsyncStep1>()
+            .Then<OB_Validation1>()
+            .Then<OB_AsyncStep2>()
+            .Then<OB_Validation2>()
+            ;
     }
 
     [Benchmark(Baseline = true)]

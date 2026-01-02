@@ -97,7 +97,7 @@ public async Task<bool> ProcessInvoiceAsync(Invoice invoice, User requestingUser
 - Mixed concerns scattered throughout: validation, authorization, business rules, payments, accounting, logging, notifications, audit
 - Each new requirement adds another branch or nested condition
 - Early returns make it hard to see what happens on the happy path
-- Inconsistent error handling—some return false, some throw, some log but continue
+- Inconsistent error handling: some return false, some throw, some log but continue
 - No clear separation between "validation failed" and "authorization failed"
 - Manual rollback logic would need to be scattered everywhere
 - Difficult to test individual concerns in isolation
@@ -194,18 +194,22 @@ public class OrderProcessor
 Managing mixed async and sync operations becomes a headache, often leading to deadlocks or performance issues:
 
 ```csharp
-// ❌ Async/Sync Mixing Complexity
-public async Task<Result> ProcessAsync(Order order)
+// ❌ Async logic forced into a synchronous interface
+public Result Process(Order order)
 {
-    // Sync operation mixed with async
-    ValidateSync(order); // Blocks the async flow
+    Validate(order);
+
+    // Forced sync wait due to interface constraints
+    var pricing = _pricingService
+        .GetPricingAsync(order)
+        .GetAwaiter()
+        .GetResult(); // Can deadlock in certain contexts
+
+    Save(order, pricing);
+
+    _notificationService.SendAsync(order); // Fire-and-forget
     
-    await FetchDataAsync(order);
-    
-    // Another sync operation
-    var calculated = CalculateAsync(order).Result; // 🔴 DEADLOCK RISK!
-    
-    await SendNotificationAsync(order);
+    return Result.Success();
 }
 ```
 
@@ -680,7 +684,7 @@ var pipe = builder.CreatePipe(Options.Create(new PipeBlockOptions
     .Then<ValidateOrderBlock>()        // Sync
     .Then<CalculateTaxBlock>()         // Sync
     .Then<CheckInventoryBlock>()       // Async (pipeline handles seamlessly)
-    .Then<ProcessPaymentBlock>();     // Async
+    .Then<ProcessPaymentBlock>();      // Async
 
 // Execute synchronously - MM.PipeBlocks handles the async blocks internally
 var order = new Order { Amount = 99.99m, /* ... */ };
@@ -1300,30 +1304,6 @@ By adopting MM.PipeBlocks, you get cleaner code, better maintainability, improve
 
 ---
 
-## Acknowledgments
-
-MM.PipeBlocks stands on the shoulders of proven functional programming concepts and excellent supporting libraries:
-
-- **Railway-Oriented Programming** - The two-rail success/failure pattern is inspired by [Scott Wlaschin's excellent work](https://fsharpforfunandprofit.com/rop/) on functional error handling in F#. This paradigm elegantly separates happy path logic from error handling.
-
-- **Either Monad Pattern** - The Either/Result pattern comes from functional programming languages like Haskell and F#, providing a type-safe way to represent success or failure without exceptions.
-
-- **Nito.AsyncEx** - We leverage [Stephen Cleary's Nito.AsyncEx.Context](https://github.com/StephenCleary/AsyncEx) library for safe async/sync context bridging, helping prevent deadlocks in mixed async/sync scenarios.
-
-- **Functional Programming Community** - Concepts from languages like F#, Haskell, and the broader functional programming community have deeply influenced this design.
-
----
-
-## Resources
-
-- **GitHub**: https://github.com/mmintoff/PipeBlocks
-- **NuGet**: MM.PipeBlocks
-- **Examples**: See the `Examples/` directory for complete working samples
-- **Railway-Oriented Programming**: https://fsharpforfunandprofit.com/rop/
-- **Nito.AsyncEx**: https://github.com/StephenCleary/AsyncEx
-
----
-
 ## SOLID Principles & MM.PipeBlocks
 
 MM.PipeBlocks naturally aligns with SOLID design principles, making it easier to build maintainable, testable, and scalable applications. Here's how:
@@ -1874,3 +1854,129 @@ var result3 = await pipe.ExecuteAsync(new Parameter<Order>(order3));
 
 MM.PipeBlocks doesn't invent DIP—it distributes the dependency burden across many small, focused classes rather than concentrating it in one orchestrator. This makes the system **easier to extend, test, and maintain** without modifying existing code.
 
+---
+
+## Performance Overview
+
+Benchmarks were run using **BenchmarkDotNet v0.15.0** on **.NET 10.0** to measure the overhead introduced by `PipeBlocks` compared to plain C# execution.
+
+While `PipeBlocks` does introduce additional cost, the absolute overhead remains small (hundreds of nanoseconds) and predictable across scenarios. For most real-world workloads, this overhead is negligible relative to I/O, serialization, or business logic costs.
+
+### Key Takeaways
+
+- **Happy-path overhead:** ~180–220 ns  
+- **Bad-response overhead:** ~356 ns  
+- **Worst-case exception path:** ~3.2 µs  
+- **Allocation overhead:** ~480–824 bytes per invocation  
+- **No hidden contention or threading costs**  
+- Even with ratios appearing large in microbenchmarks, **absolute cost is very small** and comparable to a dictionary lookup, small object allocation, or async hop.
+
+---
+
+## Benchmark Results (Selected)
+
+### Happy Path (No Exceptions)
+
+| Method      | Mean (ns) | Ratio | Allocated |
+|-------------|----------:|------:|----------:|
+| PlainCSharp | 11.92     | 1.00  | 96 B      |
+| PipeBlocks  | 191.56    | 16.08 | 824 B     |
+
+> **~180 ns absolute overhead**  
+> This represents ~0.00018 ms per call — insignificant for non-hot-loop scenarios.
+
+---
+
+### Happy Path (With Exception Handling Enabled)
+
+| Method      | Mean (ns) | Ratio | Allocated |
+|-------------|----------:|------:|----------:|
+| PlainCSharp | 12.42     | 1.00  | 96 B      |
+| PipeBlocks  | 224.07    | 18.05 | 568 B     |
+
+> Enabling exception handling does **not materially change performance**.
+
+---
+
+### Exception Thrown
+
+| Method      | Mean (ns) | Ratio | Allocated |
+|-------------|----------:|------:|----------:|
+| PlainCSharp | 1,280.30  | 1.00  | 416 B     |
+| PipeBlocks  | 3,231.92  | 2.52  | 1,448 B   |
+
+> Exception paths are slower as expected, but remain well under **3.5 µs**.
+
+---
+
+### Invalid / Bad Response
+
+| Method      | Mean (ns) | Ratio | Allocated |
+|-------------|----------:|------:|----------:|
+| PlainCSharp | 11.52     | 1.00  | 96 B      |
+| PipeBlocks  | 368.30    | 31.99 | 480 B     |
+
+> Absolute overhead is ~356 ns — still sub-microsecond.
+
+---
+
+## Interpretation
+
+Although `PipeBlocks` appears **16–32× slower in microbenchmarks**, the *absolute cost* is what really matters:
+
+- **Happy-path overhead:** ~180–220 ns ≈ 0.00000018–0.00000022 seconds  
+- **Bad-response overhead:** ~356 ns ≈ 0.00000036 seconds  
+- **Worst-case exception path:** ~3.2 µs  
+
+These overheads are comparable to **very common, lightweight operations in .NET**:
+
+- A single dictionary lookup  
+- A small object allocation  
+- A single async state-machine hop  
+
+In practical terms, for workloads involving:
+
+- HTTP calls  
+- I/O  
+- Serialization  
+- Logging  
+- Validation  
+- Dependency injection  
+
+…the relative overhead of `PipeBlocks` becomes statistically insignificant. Microbenchmarks exaggerate the cost because the baseline (plain C#) is extremely fast, but in any realistic application scenario, the added time is negligible.
+
+---
+
+## Conclusion
+
+`PipeBlocks` trades a small, fixed per-call overhead for:
+
+- Structured and readable control flow  
+- Centralized exception handling  
+- Improved composability  
+
+Even in scenarios with exceptions or invalid responses, **absolute cost remains very low**. For any workload beyond tight numeric loops, `PipeBlocks` provides a **practical, predictable, and safe tradeoff** between performance and code clarity.
+
+---
+
+## Acknowledgments
+
+MM.PipeBlocks stands on the shoulders of proven functional programming concepts and excellent supporting libraries:
+
+- **Railway-Oriented Programming** - The two-rail success/failure pattern is inspired by [Scott Wlaschin's excellent work](https://fsharpforfunandprofit.com/rop/) on functional error handling in F#. This paradigm elegantly separates happy path logic from error handling.
+
+- **Either Monad Pattern** - The Either/Result pattern comes from functional programming languages like Haskell and F#, providing a type-safe way to represent success or failure without exceptions.
+
+- **Nito.AsyncEx** - We leverage [Stephen Cleary's Nito.AsyncEx.Context](https://github.com/StephenCleary/AsyncEx) library for safe async/sync context bridging, helping prevent deadlocks in mixed async/sync scenarios.
+
+- **Functional Programming Community** - Concepts from languages like F#, Haskell, and the broader functional programming community have deeply influenced this design.
+
+---
+
+## Resources
+
+- **GitHub**: https://github.com/mmintoff/PipeBlocks
+- **NuGet**: MM.PipeBlocks
+- **Examples**: See the `Examples/` directory for complete working samples
+- **Railway-Oriented Programming**: https://fsharpforfunandprofit.com/rop/
+- **Nito.AsyncEx**: https://github.com/StephenCleary/AsyncEx
