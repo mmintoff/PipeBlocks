@@ -8,7 +8,7 @@ using MM.PipeBlocks.Extensions;
 using MM.PipeBlocks.Extensions.DependencyInjection;
 using MM.PipeBlocks.Tester;
 
-BenchmarkRunner.Run<PipelineBenchmark>();
+BenchmarkRunner.Run<OverheadBenchmark>();
 return;
 
 var serviceCollection = new ServiceCollection();
