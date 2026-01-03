@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-	<Version>1.1.1</Version>
+	<Version>1.1.2</Version>
     <Authors>Mark Mintoff</Authors>
     <Description>MM.PipeBlocks implementation of the interfaces in Microsoft.Extensions.DependencyInjection.Abstractions, the .NET Framework dependency injection abstraction.</Description>
     <PackageTags>pipeline;workflow;functional-programming;monad;error-handling;async</PackageTags>

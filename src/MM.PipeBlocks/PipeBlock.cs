@@ -24,6 +24,8 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     private readonly ILogger<PipeBlock<V>> _logger;
     private readonly bool _hasContextConstants;
 
+    private static readonly Action<ILogger, string, Exception?> s_createdPipe = LoggerMessage.Define<string>(LogLevel.Information, default, "Created pipe: '{PipeName}'");
+
     private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
     private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
     private static readonly Action<ILogger, string, Exception?> s_logAppliedContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applied context configuration for pipe: '{name}'");
@@ -47,7 +49,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
         _hasContextConstants = _options.ConfigureContextConstants != null;
         Builder = blockBuilder;
         _logger = blockBuilder.CreateLogger<PipeBlock<V>>();
-        _logger.LogInformation("Created pipe: '{name}'", _options.PipeName);
+        s_createdPipe(_logger, _options.PipeName, null);
     }
 
     /// <summary>
@@ -72,7 +74,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     public Parameter<V> Execute(Parameter<V> value)
     {
         s_sync_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        if(_hasContextConstants)
+        if(_hasContextConstants && !IsFinished(value))
         {
             _options.ConfigureContextConstants!(value.Context);
         }
@@ -113,7 +115,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
         s_async_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        if (_hasContextConstants)
+        if (_hasContextConstants && !IsFinished(value))
         {
             _options.ConfigureContextConstants!(value.Context);
         }

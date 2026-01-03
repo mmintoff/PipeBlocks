@@ -24,6 +24,8 @@ public partial class StartFromPipeBlock<V> : IPipeBlock<V>
     private readonly ILogger<StartFromPipeBlock<V>> _logger;
     private readonly bool _hasContextConstants;
 
+    private static readonly Action<ILogger, string, Exception?> s_createdPipe = LoggerMessage.Define<string>(LogLevel.Information, default, "Created pipe: '{PipeName}'");
+
     private static readonly Action<ILogger, string, string, Exception?> s_logAddBlock = LoggerMessage.Define<string, string>(LogLevel.Trace, default, "Added block: '{Type}' to pipe: '{name}'");
     private static readonly Action<ILogger, string, Exception?> s_logApplyingContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applying context configuration for pipe: '{name}'");
     private static readonly Action<ILogger, string, Exception?> s_logAppliedContextConfig = LoggerMessage.Define<string>(LogLevel.Trace, default, "Applied context configuration for pipe: '{name}'");
@@ -54,7 +56,7 @@ public partial class StartFromPipeBlock<V> : IPipeBlock<V>
         _startStepFunc = startStepFunc;
         Builder = blockBuilder;
         _logger = blockBuilder.CreateLogger<StartFromPipeBlock<V>>();
-        _logger.LogInformation("Created pipe: '{name}'", _options.PipeName);
+        s_createdPipe(_logger, _options.PipeName, null);
     }
 
     /// <summary>

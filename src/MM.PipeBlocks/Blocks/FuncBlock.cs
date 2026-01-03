@@ -84,7 +84,7 @@ public class FuncBlock<V> : ISyncBlock<V>
 
         var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
         var methodName = method?.Name ?? "UnknownMethod";
-        var baseName = base.ToString() ?? nameof(FuncBlock<V>);
+        var baseName = base.ToString() ?? nameof(FuncBlock<>);
 
         return $"{baseName} (Method: {typeName}.{methodName})";
     }
@@ -170,7 +170,7 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
 
         var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
         var methodName = method?.Name ?? "UnknownMethod";
-        var baseName = base.ToString() ?? nameof(AsyncFuncBlock<V>);
+        var baseName = base.ToString() ?? nameof(AsyncFuncBlock<>);
 
         return $"{baseName} (Method: {typeName}.{methodName})";
     }

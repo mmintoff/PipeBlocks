@@ -2,13 +2,15 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 
+namespace MM.PipeBlocks.Abstractions;
+
 public sealed class Context
 {
     public Guid CorrelationId { get; set; } = Guid.NewGuid();
     public bool IsFinished { get; set; }
     public bool IsFlipped { get; set; }
 
-    private object?[] _slots = Array.Empty<object?>();
+    private object?[] _slots = [];
 
     private static int _nextId;
     private static readonly ConcurrentDictionary<string, int> _ids =

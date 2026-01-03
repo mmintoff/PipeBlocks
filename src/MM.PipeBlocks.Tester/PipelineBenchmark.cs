@@ -14,9 +14,9 @@ namespace MM.PipeBlocks.Tester;
 [DisassemblyDiagnoser(printSource: true)]
 public class PipelineBenchmark
 {
-    private IPipeBlock<CustomValue1> _pipe1;
-    private IPipeBlock<CustomValue1> _pipe2;
-    private CustomValue1 _value = new()
+    private PipeBlock<CustomValue1> _pipe1;
+    private PipeBlock<CustomValue1> _pipe2;
+    private readonly CustomValue1 _value = new()
     {
         Count = 57,
         Name = "Henry"
@@ -86,28 +86,28 @@ public class PipelineBenchmark
         return false;
     }
 
-    void Fibonnaci()
-    {
-        int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
-        var result = Fib(35);
-    }
+    //void Fibonnaci()
+    //{
+    //    int Fib(int n) => n <= 1 ? n : Fib(n - 1) + Fib(n - 2);
+    //    var result = Fib(35);
+    //}
 
-    void PrimeCheck()
-    {
-        bool IsPrime(int n)
-        {
-            if (n < 2) return false;
-            for (int i = 2; i * i <= n; i++)
-                if (n % i == 0)
-                    return false;
-            return true;
-        }
+    //void PrimeCheck()
+    //{
+    //    bool IsPrime(int n)
+    //    {
+    //        if (n < 2) return false;
+    //        for (int i = 2; i * i <= n; i++)
+    //            if (n % i == 0)
+    //                return false;
+    //        return true;
+    //    }
 
-        int count = 0;
-        for (int i = 2; i < 1_000_000; i++)
-            if (IsPrime(i))
-                count++;
-    }
+    //    int count = 0;
+    //    for (int i = 2; i < 1_000_000; i++)
+    //        if (IsPrime(i))
+    //            count++;
+    //}
 
     [Benchmark]
     public Parameter<CustomValue1> SyncRegularExecution_no_error_handling()

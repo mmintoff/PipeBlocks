@@ -7,12 +7,12 @@ public class AsyncReturnTests
 {
     private readonly BlockBuilder<MyValue> _blockBuilder = new();
 
-    private void AssertIsReturnBlock(IBlock<MyValue> block)
+    private static void AssertIsReturnBlock(IBlock<MyValue> block)
     {
         Assert.IsType<ReturnBlock<MyValue>>(block);
     }
 
-    private void AssertIsBranchBlock(IBlock<MyValue> block)
+    private static void AssertIsBranchBlock(IBlock<MyValue> block)
     {
         Assert.IsType<BranchBlock<MyValue>>(block);
     }

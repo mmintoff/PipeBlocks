@@ -36,7 +36,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -69,7 +69,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -102,7 +102,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -133,7 +133,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -165,7 +165,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
         });
         result.Match(
@@ -194,7 +194,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
         });
         result.Match(
@@ -224,7 +224,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
         });
         result.Match(
@@ -252,7 +252,7 @@ public class AsyncIfThenTests
 
         var result = await pipe.ExecuteAsync(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
         });
         result.Match(

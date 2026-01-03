@@ -3,6 +3,7 @@ using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks;
+
 /// <summary>
 /// Executes blocks that implement either synchronous or asynchronous logic.
 /// </summary>
@@ -20,20 +21,14 @@ public static class BlockExecutor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Parameter<V> ExecuteSync<V>(IBlock<V> block, Parameter<V> value, bool handleExceptions = false)
     {
-        try
+        return block switch
         {
-            return block switch
-            {
-                ISyncBlock<V> syncBlock => syncBlock.Execute(value),
-                IAsyncBlock<V> asyncBlock => ExecuteValueTaskSynchronously(value, asyncBlock.ExecuteAsync(value), handleExceptions),
-                _ => value
-            };
-        }
-        catch (Exception ex) when (handleExceptions)
-        {
-            value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
-            return value;
-        }
+            ISyncBlock<V> syncBlock when handleExceptions => ExecuteSyncHandled(syncBlock, value),
+            ISyncBlock<V> syncBlock => syncBlock.Execute(value),
+            IAsyncBlock<V> asyncBlock when handleExceptions => ExecuteAsyncSynchronouslyHandled(asyncBlock, value),
+            IAsyncBlock<V> asyncBlock => ExecuteAsyncSynchronously(asyncBlock, value),
+            _ => value
+        };
     }
 
     /// <summary>
@@ -51,61 +46,93 @@ public static class BlockExecutor
         Parameter<V> value,
         bool handleExceptions = false)
     {
-        if (!handleExceptions)
+        return block switch
         {
-            return block switch
-            {
-                IAsyncBlock<V> asyncBlock => asyncBlock.ExecuteAsync(value),
-                ISyncBlock<V> syncBlock => ValueTask.FromResult(syncBlock.Execute(value)),
-                _ => ValueTask.FromResult(value)
-            };
-        }
-
-        return ExecuteHandledAsync(block, value);
+            IAsyncBlock<V> asyncBlock when handleExceptions => ExecuteAsyncHandled(asyncBlock, value),
+            IAsyncBlock<V> asyncBlock => asyncBlock.ExecuteAsync(value),
+            ISyncBlock<V> syncBlock when handleExceptions => ExecuteSyncAsValueTaskHandled(syncBlock, value),
+            ISyncBlock<V> syncBlock => ValueTask.FromResult(syncBlock.Execute(value)),
+            _ => ValueTask.FromResult(value)
+        };
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static ValueTask<Parameter<V>> ExecuteHandledAsync<V>(IBlock<V> block, Parameter<V> value)
-    {
-        // Your preferred handled implementation here (the async-await version).
-        return ExecuteHandledCoreAsync(block, value);
-
-        static async ValueTask<Parameter<V>> ExecuteHandledCoreAsync(IBlock<V> block, Parameter<V> value)
-        {
-            try
-            {
-                return block switch
-                {
-                    IAsyncBlock<V> asyncBlock => await asyncBlock.ExecuteAsync(value).ConfigureAwait(false),
-                    ISyncBlock<V> syncBlock => syncBlock.Execute(value),
-                    _ => value
-                };
-            }
-            catch (Exception ex)
-            {
-                value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
-                return value;
-            }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Parameter<V> ExecuteValueTaskSynchronously<V>(Parameter<V> value, ValueTask<Parameter<V>> task, bool handleExceptions = false)
+    // No hint - let JIT decide (has try/catch)
+    private static Parameter<V> ExecuteSyncHandled<V>(ISyncBlock<V> syncBlock, Parameter<V> value)
     {
         try
         {
-            if (task.IsCompletedSuccessfully)
-                return task.Result;
-
-            if (task.IsCompleted)
-                return task.GetAwaiter().GetResult();
-
-            return AsyncContext.Run(() => task.AsTask());
+            return syncBlock.Execute(value);
         }
-        catch (Exception ex) when (handleExceptions)
+        catch (Exception ex)
         {
             value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
             return value;
         }
+    }
+
+    // No hint - let JIT decide (async method)
+    private static async ValueTask<Parameter<V>> ExecuteAsyncHandled<V>(IAsyncBlock<V> asyncBlock, Parameter<V> value)
+    {
+        try
+        {
+            return await asyncBlock.ExecuteAsync(value).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
+            return value;
+        }
+    }
+
+    // No hint - let JIT decide (has try/catch)
+    private static ValueTask<Parameter<V>> ExecuteSyncAsValueTaskHandled<V>(ISyncBlock<V> syncBlock, Parameter<V> value)
+    {
+        try
+        {
+            return ValueTask.FromResult(syncBlock.Execute(value));
+        }
+        catch (Exception ex)
+        {
+            value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
+            return ValueTask.FromResult(value);
+        }
+    }
+
+    // No hint - let JIT decide (has try/catch)
+    private static Parameter<V> ExecuteAsyncSynchronouslyHandled<V>(IAsyncBlock<V> asyncBlock, Parameter<V> value)
+    {
+        try
+        {
+            return ExecuteValueTaskSynchronously(asyncBlock.ExecuteAsync(value));
+        }
+        catch (Exception ex)
+        {
+            value.SignalBreak(new ExceptionFailureState<V>(value.Value, ex));
+            return value;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Parameter<V> ExecuteAsyncSynchronously<V>(IAsyncBlock<V> asyncBlock, Parameter<V> value)
+    {
+        return ExecuteValueTaskSynchronously(asyncBlock.ExecuteAsync(value));
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Parameter<V> ExecuteValueTaskSynchronously<V>(ValueTask<Parameter<V>> task)
+    {
+        if (task.IsCompletedSuccessfully)
+            return task.Result;
+
+        return ExecuteValueTaskSynchronouslySlow(task);
+    }
+
+    // Separate slow path to keep inline size small
+    private static Parameter<V> ExecuteValueTaskSynchronouslySlow<V>(ValueTask<Parameter<V>> task)
+    {
+        if (task.IsCompleted)
+            return task.GetAwaiter().GetResult();
+
+        return AsyncContext.Run(() => task.AsTask());
     }
 }

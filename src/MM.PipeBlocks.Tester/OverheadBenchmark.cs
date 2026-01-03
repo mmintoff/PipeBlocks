@@ -21,7 +21,7 @@ public class OverheadBenchmark
     public bool HandleExceptions;
 
     private Request _request = null;
-    private IPipeBlock<Request> _pipe = null;
+    private PipeBlock<Request> _pipe;
 
     [GlobalSetup]
     public void Setup()
@@ -83,12 +83,29 @@ public class OverheadBenchmark
     }
 
     [Benchmark]
-    public async Task<Response> PipeBlock()
+    public async Task<Response> PipeBlocks()
     {
-        var result = await _pipe.ExecuteAsync(_request);
-        return result.Match(
-            f => new Response(result.Context.Get<int>("v1"), false),
-            s => new Response(result.Context.Get<int>("v1"), true));
+        if (!HandleExceptions)
+        {
+            try
+            {
+                var result = await _pipe.ExecuteAsync(_request);
+                return result.Match(
+                    f => new Response(result.Context.Get<int>("v1"), false),
+                    s => new Response(result.Context.Get<int>("v1"), true));
+            }
+            catch
+            {
+                return new Response(-1, false);
+            }
+        }
+        else
+        {
+            var result = await _pipe.ExecuteAsync(_request);
+            return result.Match(
+                f => new Response(result.Context.Get<int>("v1"), false),
+                s => new Response(result.Context.Get<int>("v1"), true));
+        }
     }
 
     private static ValueTask<int> AsyncStep1(Request request)

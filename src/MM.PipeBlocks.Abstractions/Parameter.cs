@@ -25,7 +25,8 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
         Context.IsFinished = true;
         _either = new Either<IFailureState<V>, V>(new DefaultFailureState<V>(Value)
         {
-            CorrelationId = Context.CorrelationId
+            CorrelationId = Context.CorrelationId,
+            FailureReason = failureReason
         });
     }
 

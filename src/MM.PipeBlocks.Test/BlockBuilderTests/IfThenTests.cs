@@ -36,7 +36,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -69,7 +69,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -102,7 +102,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -133,7 +133,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -166,7 +166,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -197,7 +197,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -228,7 +228,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
@@ -257,7 +257,7 @@ public class IfThenTests
 
         var result = pipe.Execute(value, ctx =>
         {
-            ctx.Set("IsFlipped", isFlipped);
+            ctx.IsFlipped = isFlipped;
             ctx.Set("Condition", condition);
             ctx.Set("Counter", 0);
         });
