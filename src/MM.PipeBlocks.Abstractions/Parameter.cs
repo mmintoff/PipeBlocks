@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-namespace MM.PipeBlocks.Abstractions;
+﻿namespace MM.PipeBlocks.Abstractions;
 
 public class Parameter<V> : IEither<IFailureState<V>, V>
 {
@@ -14,6 +12,8 @@ public class Parameter<V> : IEither<IFailureState<V>, V>
 
     public V Value { get => _either.Match(x => x.Value, x => x); }
     public Guid CorrelationId { get => Context.CorrelationId; }
+
+    public bool IsFailure { get => _either.IsLeft; }
 
     public void SignalBreak()
     {

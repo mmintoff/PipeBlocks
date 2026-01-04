@@ -191,12 +191,8 @@ public sealed class AdapterPipeBlock<V1, V2> : IPipeBlock<V1>
     }
 
     private static bool IsFinished(Parameter<V2> value) => value.Context.IsFlipped
-        ? !(value.Context.IsFinished || IsFailure(value))
-        : value.Context.IsFinished || IsFailure(value);
-
-    private static bool IsFailure(Parameter<V2> value) => value.Match(
-        _ => true,
-        _ => false);
+        ? !(value.Context.IsFinished || value.IsFailure)
+        : value.Context.IsFinished || value.IsFailure;
 
     public override string ToString() => _options.PipeName;
 }

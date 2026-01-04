@@ -179,11 +179,6 @@ public partial class PipeBlock<V> : IPipeBlock<V>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
-        ? !(value.Context.IsFinished || IsFailure(value))
-        : value.Context.IsFinished || IsFailure(value);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsFailure(Parameter<V> value) => value.Match(
-        _ => true,
-        _ => false);
+        ? !(value.Context.IsFinished || value.IsFailure)
+        : value.Context.IsFinished || value.IsFailure;
 }

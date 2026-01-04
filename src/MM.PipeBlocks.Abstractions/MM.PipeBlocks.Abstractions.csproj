@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
 
-	<Version>1.1.2</Version>
+	<Version>1.1.3</Version>
     <Authors>Mark Mintoff</Authors>
     <Description>This is the abstractions layer for MM.PipeBlocks</Description>
     <PackageTags>abstractions;core</PackageTags>

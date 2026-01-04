@@ -28,17 +28,40 @@ public partial class BlockBuilder<V>
     /// Executes <paramref name="doThis"/> if the condition is true; otherwise, executes <paramref name="elseThis"/>.
     /// </summary>
     public BranchBlock<V> IfThen(Func<Parameter<V>, bool> condition, IBlock<V> doThis, IBlock<V> elseThis)
-        => Switch(value => value.Match(
-                _ => value.Context.IsFlipped && condition(value),
-                _ => condition(value)) ? doThis : elseThis);
+        => Switch(value =>
+        {
+            if (value.IsFailure && !value.Context.IsFlipped)
+                return elseThis;
+
+            return condition(value) ? doThis : elseThis;
+        });
 
     /// <summary>
     /// Asynchronously evaluates a condition and branches accordingly.
     /// </summary>
     public BranchBlock<V> IfThen(Func<Parameter<V>, ValueTask<bool>> condition, IBlock<V> doThis, IBlock<V> elseThis)
-        => Switch(async value => await value.MatchAsync(
-                _ => value.Context.IsFlipped ? condition(value) : ValueTask.FromResult(false),
-                _ => condition(value)) ? doThis : elseThis);
+    {
+        return Switch(EvaluateConditionAsync);
+
+        ValueTask<IBlock<V>> EvaluateConditionAsync(Parameter<V> value)
+        {
+            if (value.IsFailure && !value.Context.IsFlipped)
+                return ValueTask.FromResult<IBlock<V>>(elseThis);
+
+            var conditionTask = condition(value);
+
+            if (conditionTask.IsCompletedSuccessfully)
+                return ValueTask.FromResult<IBlock<V>>(conditionTask.Result ? doThis : elseThis);
+
+            return AwaitAndSelect(conditionTask, doThis, elseThis);
+        }
+
+        static async ValueTask<IBlock<V>> AwaitAndSelect(
+            ValueTask<bool> conditionTask,
+            IBlock<V> doThis,
+            IBlock<V> elseThis)
+            => await conditionTask.ConfigureAwait(false) ? doThis : elseThis;
+    }
 
     #endregion
 

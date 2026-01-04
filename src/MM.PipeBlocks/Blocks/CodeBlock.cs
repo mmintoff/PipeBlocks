@@ -17,9 +17,13 @@ public abstract class CodeBlock<V> : ISyncBlock<V>
     /// </summary>
     /// <param name="value">The parameter for execution.</param>
     /// <returns>The updated parameter after execution.</returns>
-    public virtual Parameter<V> Execute(Parameter<V> value) => value.Match(
-        x => value.Context.IsFlipped ? Execute(value, x.Value) : value,
-        x => Execute(value, x));
+    public virtual Parameter<V> Execute(Parameter<V> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return value;
+
+        return Execute(value, value.Value);
+    }
 
     /// <summary>
     /// Override this method to implement logic using the value within the parameter.
@@ -43,9 +47,13 @@ public abstract class AsyncCodeBlock<V> : IAsyncBlock<V>
     /// </summary>
     /// <param name="value">The parameter for execution.</param>
     /// <returns>A <see cref="ValueTask{T}"/> representing the asynchronous operation.</returns>
-    public virtual ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
-        x => value.Context.IsFlipped ? ExecuteAsync(value, x.Value) : ValueTask.FromResult(value),
-        x => ExecuteAsync(value, x));
+    public virtual ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return ValueTask.FromResult(value);
+
+        return ExecuteAsync(value, value.Value);
+    }
 
     /// <summary>
     /// Override this method to implement asynchronous logic using the value within the parameter.

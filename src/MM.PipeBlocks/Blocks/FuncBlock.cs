@@ -48,9 +48,10 @@ public class FuncBlock<V> : ISyncBlock<V>
     /// <returns>The updated parameter.</returns>
     public Parameter<V> Execute(Parameter<V> value)
     {
-        return value.Match(
-            _ => value.Context.IsFlipped ? ExecuteWithStrategy(value) : value,
-            _ => ExecuteWithStrategy(value));
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return value;
+
+        return ExecuteWithStrategy(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -134,9 +135,10 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
     /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
     public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
     {
-        return value.Match(
-            _ => value.Context.IsFlipped ? ExecuteWithStrategyAsync(value) : new ValueTask<Parameter<V>>(value),
-            _ => ExecuteWithStrategyAsync(value));
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return ValueTask.FromResult(value);
+
+        return ExecuteWithStrategyAsync(value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

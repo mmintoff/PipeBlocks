@@ -1860,132 +1860,170 @@ MM.PipeBlocks doesn't invent DIP—it distributes the dependency burden across m
 
 Benchmarks were run using **BenchmarkDotNet v0.15.0** on **.NET 10.0** to measure the overhead introduced by `PipeBlocks` compared to plain C# execution.
 
-While `PipeBlocks` does introduce additional cost, the absolute overhead remains small (hundreds of nanoseconds) and predictable across scenarios. For most real-world workloads, this overhead is negligible relative to I/O, serialization, or business logic costs.
+Recent optimizations have significantly reduced both execution time and allocations. While `PipeBlocks` introduces additional cost relative to raw C#, the *absolute overhead* remains small (hundreds of nanoseconds) and predictable across scenarios.
 
+For most real-world applications, this overhead is negligible relative to I/O, async boundaries, serialization, logging, or business logic.
+
+---
 ### Key Takeaways
 
-- **Happy-path overhead:** ~180–185 ns  
-- **Bad-response overhead:** ~170–180 ns  
+- **Happy-path overhead:** ~150–180 ns  
+  - ~155 ns without exception handling  
+  - ~180 ns with `HandleExceptions` enabled  
+
+- **Bad-response overhead:** ~125–165 ns  
+  - Consistent with happy-path costs  
+  - No pathological slowdown for early-exit scenarios  
+
 - **Worst-case exception path:** ~3–5 µs  
-- **Enabling `HandleExceptions` reduces exception cost and allocations**
-- **Allocation overhead:** ~480–824 bytes per invocation  
+  - ~3.1 µs with `HandleExceptions` enabled  
+  - ~4.8 µs when exceptions propagate without handling  
+
+- **`HandleExceptions` materially reduces exception cost and allocations**
+  - ~35–40% lower execution time on exception paths  
+  - ~35% fewer allocations compared to unhandled exceptions  
+
+- **Allocation overhead:** ~350–440 bytes per invocation  
+  - Reduced significantly from earlier versions  
+  - Stable across happy, bad-response, and handled-exception paths  
+
 - **No hidden contention or threading costs**
-- Large ratios are a microbenchmark artifact; **absolute cost remains very small**
+  - No locks taken  
+  - No thread pool usage  
+  - No scheduling or synchronization overhead  
+
+- **Large ratios are a microbenchmark artifact**
+  - Plain C# baseline is ~12 ns  
+  - Multipliers appear large, but **absolute cost remains very small**  
+  - Differences are measured in *hundreds of nanoseconds*, not milliseconds
 
 ---
 
 ## Benchmark Results (Selected)
 
-### Happy Path (No Exceptions)
-
-#### HandleExceptions = false
+### Happy Path (No Exception Handling)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 12.33     | 1.00  | 96 B      |
-| PipeBlocks  | 191.92    | 15.57 | 824 B     |
+| PlainCSharp | 11.94     | 1.00  | 96 B      |
+| PipeBlocks  | 154.90    | 12.97 | 440 B     |
 
-> **~180 ns absolute overhead**  
-> ≈ **0.00000018 seconds per call**
+> **~143 ns absolute overhead**  
+> ≈ **0.00000015 seconds per call**
 
 ---
 
-#### HandleExceptions = true
+### Happy Path (Exception Handling Enabled)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 12.22     | 1.00  | 96 B      |
-| PipeBlocks  | 196.70    | 16.10 | 568 B     |
+| PlainCSharp | 11.89     | 1.00  | 96 B      |
+| PipeBlocks  | 181.01    | 15.22 | 440 B     |
 
-> Enabling exception handling adds **negligible additional cost** on the happy path.
+> Enabling exception handling adds a small, predictable cost  
+> (~25 ns over the non-exception-handling path)
 
 ---
 
-### Exception Thrown
-
-#### HandleExceptions = false
+### Exception Thrown (HandleExceptions = true)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 1,276.02  | 1.00  | 416 B     |
-| PipeBlocks  | 4,710.82  | 3.69  | 2,416 B   |
+| PlainCSharp | 1,267.78  | 1.00  | 416 B     |
+| PipeBlocks  | 3,099.54  | 2.44  | 1,352 B   |
+
+> **~3.1 µs total cost**
+> Still well below typical I/O or async costs
+
+When `HandleExceptions` is enabled, `PipeBlocks` captures and processes exceptions earlier in the execution pipeline. This reduces the amount of stack unwinding required and avoids propagating the exception through additional frames.
+
+As a result:
+
+- Less stack traversal occurs during exception handling
+- Fewer intermediate allocations are required
+- Dispatch and teardown work is reduced
+
+This is why the handled-exception path is measurably faster and allocates less memory than allowing exceptions to propagate unchecked through the pipeline.
 
 ---
 
-#### HandleExceptions = true
+### Exception Thrown (HandleExceptions = false)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 1,274.94  | 1.00  | 416 B     |
-| PipeBlocks  | 3,137.55  | 2.46  | 1,448 B   |
+| PlainCSharp | 1,320.42  | 1.00  | 416 B     |
+| PipeBlocks  | 4,795.29  | 3.63  | 2,064 B   |
 
 > Exception paths incur additional runtime cost due to stack unwinding, allocation, and dispatch.  
-> Enabling `HandleExceptions` **significantly reduces both execution time and allocations**, keeping execution within **~3–5 µs**.
+> Remains under **5 µs total**
 
 ---
 
-### Invalid / Bad Response
-
-#### HandleExceptions = false
+### Invalid / Bad Response (No Exception Handling)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 11.96     | 1.00  | 96 B      |
-| PipeBlocks  | 179.72    | 15.04 | 736 B     |
+| PlainCSharp | 11.39     | 1.00  | 96 B      |
+| PipeBlocks  | 138.19    | 12.14 | 352 B     |
+
+> **~127 ns absolute overhead**
 
 ---
 
-#### HandleExceptions = true
+### Invalid / Bad Response (Exception Handling Enabled)
 
 | Method      | Mean (ns) | Ratio | Allocated |
 |-------------|----------:|------:|----------:|
-| PlainCSharp | 11.36     | 1.00  | 96 B      |
-| PipeBlocks  | 182.40    | 16.05 | 480 B     |
+| PlainCSharp | 11.89     | 1.00  | 96 B      |
+| PipeBlocks  | 166.22    | 13.98 | 352 B     |
 
-> Absolute overhead remains **~170–180 ns**, regardless of exception handling mode.
+> Absolute overhead remains **~155 ns**
 
 ---
 
 ## How PipeBlocks Compares to Other .NET Frameworks and Patterns
 
-Raw performance numbers are most useful when placed in context. The following comparisons help position the overhead of `PipeBlocks` relative to other abstractions commonly used in .NET applications.
+Raw performance numbers are most meaningful when placed in context. The following comparisons position the overhead of `PipeBlocks` relative to other commonly used abstractions in the .NET ecosystem.
 
-### Manual C# Control Flow
+### Plain C#
 
-Plain C# represents the lowest possible overhead, as there is no abstraction layer involved. The happy-path baseline in these benchmarks is ~12 ns.
+Plain C# represents the lowest possible overhead.
 
-This serves as a reference point rather than a realistic target for structured application code.
+- ~10–15 ns per call
+- No abstraction or orchestration cost
+
+This serves as a baseline rather than a realistic target for structured application code.
 
 ---
 
 ### async/await State Machines
 
-`async`/`await` introduces a compiler-generated state machine and continuation scheduling.
+The `async`/`await` pattern introduces compiler-generated state machines.
 
 - A single completed `await` typically costs **~100–300 ns**
 - Incomplete awaits or context switches cost more
 
-The `PipeBlocks` happy-path overhead (~180–200 ns) falls within the same order of magnitude as a single async continuation.
+The `PipeBlocks` happy-path overhead (**~150–180 ns**) is within the same order of magnitude as a single async continuation.
 
 ---
 
 ### MediatR
 
-MediatR provides in-process request/response and notification dispatch with pipeline behaviors.
+MediatR provides in-process request/response dispatch with optional pipeline behaviors.
 
-Community benchmarks and profiling generally show:
+Typical characteristics (based on community benchmarks and profiling):
 
-- **~500 ns to 2 µs per request** for simple handlers
-- Additional cost per pipeline behavior
-- Allocations from request envelopes and handler resolution
+- **~500 ns to 2 µs+ per request**
+- Additional overhead per pipeline behavior
+- Allocations for request envelopes and handler resolution
 
-Relative to MediatR:
+Compared to MediatR:
 
 - `PipeBlocks` has **lower per-invocation overhead** on the happy path
-- No DI-based handler resolution per call
-- No reflection or dynamic dispatch during execution
+- No DI-based handler resolution per execution
+- No reflection or dynamic dispatch during runtime execution
 
-Both tools target different problem spaces, but from a raw execution perspective, `PipeBlocks` sits below MediatR in overhead.
+Both target different use cases, but from a raw execution standpoint, `PipeBlocks` sits below MediatR in overhead.
 
 ---
 
@@ -1994,22 +2032,20 @@ Both tools target different problem spaces, but from a raw execution perspective
 Channels are optimized for concurrent producer/consumer scenarios.
 
 - Posting and reading often costs **hundreds of nanoseconds**
-- Allocations depend on configuration (bounded vs unbounded, pooling)
+- Additional overhead from synchronization and scheduling
 
-`PipeBlocks` has comparable overhead for single-step execution, but without thread coordination or scheduling costs.
+`PipeBlocks` has comparable or lower overhead for single-step execution, without thread coordination costs.
 
 ---
 
 ### TPL Dataflow
 
-TPL Dataflow provides rich dataflow primitives and scheduling options.
-
-Typical characteristics:
+TPL Dataflow provides general-purpose dataflow primitives.
 
 - **~500–1500+ ns per block invocation**
-- Higher allocation rates unless pooling is carefully configured
+- Higher allocation rates unless pooling is configured
 
-Compared to TPL Dataflow, `PipeBlocks` prioritizes simpler execution with lower overhead for linear pipelines.
+`PipeBlocks` focuses on linear pipelines and structured execution, resulting in lower overhead for sequential workflows.
 
 ---
 
@@ -2017,53 +2053,53 @@ Compared to TPL Dataflow, `PipeBlocks` prioritizes simpler execution with lower 
 
 Rx.NET implements push-based observable pipelines.
 
-- Simple operator chains often incur **~200–400 ns per element**
-- More complex operators can add significant overhead
+- Simple operator chains often cost **~200–400 ns per element**
+- More complex operators increase overhead significantly
 
-`PipeBlocks` overhead is comparable to basic Rx operator chains, without requiring a subscription-based model.
+The happy-path overhead of `PipeBlocks` is comparable to basic Rx operator chains.
 
 ---
 
 ### External Message Brokers
 
-External systems such as Kafka, RabbitMQ, or Azure Service Bus introduce:
+Systems such as Kafka, RabbitMQ, or Azure Service Bus introduce:
 
 - Network latency (milliseconds)
 - Serialization and batching costs
 
-In these environments, the overhead of in-process abstractions like `PipeBlocks` is negligible by comparison.
+In these environments, in-process overhead measured in nanoseconds is irrelevant by comparison.
 
 ---
 
 ## Summary Table
 
-| Pattern / Framework        | Typical Overhead (approx) | Notes |
-|----------------------------|---------------------------|-------|
-| Plain C#                  | ~10–20 ns                 | Baseline |
-| async/await (single hop)  | ~100–300 ns               | State machine |
-| PipeBlocks (happy path)   | ~180–200 ns               | Structured control flow |
-| Channels                  | ~200–600+ ns              | Concurrency-focused |
-| Rx.NET                    | ~200–400+ ns              | Push-based |
-| MediatR                   | ~500 ns–2 µs+             | DI + pipelines |
-| TPL Dataflow              | ~500–1500+ ns             | General-purpose dataflow |
-| External brokers           | ms+                       | I/O dominates |
+| Pattern / Framework        | Typical Overhead (approx) |
+|----------------------------|---------------------------|
+| Plain C#                  | ~10–15 ns |
+| async/await (single hop)  | ~100–300 ns |
+| **PipeBlocks (happy path)** | **~150–180 ns** |
+| Rx.NET                    | ~200–400 ns |
+| Channels                  | ~200–600+ ns |
+| MediatR                   | ~500 ns–2 µs+ |
+| TPL Dataflow              | ~500–1500+ ns |
+| External brokers          | ms+ |
 
 ---
 
 ## Interpretation
 
-The overhead of `PipeBlocks` is consistent with other mainstream .NET abstractions that trade a small, fixed per-call cost for structure, composability, and correctness.
+Although `PipeBlocks` is **~13–15× slower than plain C# in microbenchmarks**, the *absolute cost* is what matters:
 
-For applications involving:
+- **~0.15 µs per invocation**
+- **~3–5 µs in exception-heavy paths**
 
-- I/O
-- Async boundaries
-- Serialization
-- Validation
-- Logging
-- Dependency injection
+This cost is comparable to:
 
-…the relative cost of `PipeBlocks` becomes insignificant. In tighter loops, its overhead remains in the **hundreds of nanoseconds**, not milliseconds.
+- A single dictionary lookup
+- A small object allocation
+- One async state-machine continuation
+
+For applications involving I/O, async operations, serialization, validation, logging, or dependency injection, the relative overhead of `PipeBlocks` becomes statistically insignificant.
 
 ---
 

@@ -31,6 +31,7 @@ public class TryCatchBlock<V>(
         try
         {
             value = BlockExecutor.ExecuteSync(tryBlock, value, false);
+
             value.Match(
                 failure =>
                 {

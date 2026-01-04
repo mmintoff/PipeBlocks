@@ -44,13 +44,21 @@ public sealed class RetryBlock<V> : ISyncBlock<V>, IAsyncBlock<V>
             .WaitAndRetryAsync(delaysArray);
     }
 
-    public Parameter<V> Execute(Parameter<V> value) => value.Match(
-        x => value.Context.IsFlipped ? ExecuteRetry(x.Value) : value,
-        x => ExecuteRetry(value));
+    public Parameter<V> Execute(Parameter<V> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return value;
 
-    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value) => value.Match(
-        x => value.Context.IsFlipped ? ExecuteRetryAsync(x.Value) : ValueTask.FromResult(value),
-        x => ExecuteRetryAsync(value));
+        return ExecuteRetry(value);
+    }
+
+    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return ValueTask.FromResult(value);
+
+        return ExecuteRetryAsync(value);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Parameter<V> ExecuteRetry(Parameter<V> value)

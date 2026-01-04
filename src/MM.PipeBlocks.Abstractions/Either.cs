@@ -9,19 +9,19 @@ public class Either<TL, TR> : IEither<TL, TR>
 {
     private readonly TL? _left;
     private readonly TR? _right;
-    private readonly bool _isLeft;
+    public readonly bool IsLeft;
 
     /// <summary>
     /// Initializes a new instance of <see cref="Either{TL, TR}"/> with a Left value.
     /// </summary>
     /// <param name="left">The value to store as Left.</param>
-    public Either(TL left) => (_left, _isLeft) = (left, true);
+    public Either(TL left) => (_left, IsLeft) = (left, true);
 
     /// <summary>
     /// Initializes a new instance of <see cref="Either{TL, TR}"/> with a Right value.
     /// </summary>
     /// <param name="right">The value to store as Right.</param>
-    public Either(TR right) => (_right, _isLeft) = (right, false);
+    public Either(TR right) => (_right, IsLeft) = (right, false);
 
     /// <summary>
     /// Implicitly converts a Left value to an <see cref="Either{TL, TR}"/>.
@@ -40,7 +40,7 @@ public class Either<TL, TR> : IEither<TL, TR>
     /// <param name="leftFunc">Function to execute if the value is Left.</param>
     /// <param name="rightFunc">Function to execute if the value is Right.</param>
     /// <returns>The result of the executed function.</returns>
-    public T Match<T>(Func<TL, T> leftFunc, Func<TR, T> rightFunc) => _isLeft ? leftFunc(_left!) : rightFunc(_right!);
+    public T Match<T>(Func<TL, T> leftFunc, Func<TR, T> rightFunc) => IsLeft ? leftFunc(_left!) : rightFunc(_right!);
 
     /// <summary>
     /// Executes one of the two actions depending on whether the instance holds a Left or a Right value.
@@ -49,7 +49,7 @@ public class Either<TL, TR> : IEither<TL, TR>
     /// <param name="rightAction">Action to execute if the value is Right.</param>
     public void Match(Action<TL> leftAction, Action<TR> rightAction)
     {
-        if (_isLeft) leftAction(_left!);
+        if (IsLeft) leftAction(_left!);
         else rightAction(_right!);
     }
 
@@ -60,7 +60,7 @@ public class Either<TL, TR> : IEither<TL, TR>
     /// <param name="rightAction">Asynchronous function to execute if the value is Right.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
     public ValueTask MatchAsync(Func<TL, ValueTask> leftAction, Func<TR, ValueTask> rightAction)
-        => _isLeft ? leftAction(_left!) : rightAction(_right!);
+        => IsLeft ? leftAction(_left!) : rightAction(_right!);
 
     /// <summary>
     /// Asynchronously executes one of the two functions with return values depending on whether the instance holds a Left or a Right value.
@@ -70,5 +70,5 @@ public class Either<TL, TR> : IEither<TL, TR>
     /// <param name="rightTask">Asynchronous function to execute if the value is Right.</param>
     /// <returns>A <see cref="ValueTask{T}"/> representing the result of the operation.</returns>
     public ValueTask<T> MatchAsync<T>(Func<TL, ValueTask<T>> leftTask, Func<TR, ValueTask<T>> rightTask)
-        => _isLeft ? leftTask(_left!) : rightTask(_right!);
+        => IsLeft ? leftTask(_left!) : rightTask(_right!);
 }
