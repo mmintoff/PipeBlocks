@@ -17,6 +17,7 @@ public partial class StartFromPipeBlock<V> : IPipeBlock<V>
     /// The <see cref="BlockBuilder{V}"/> used to resolve and create blocks.
     /// </summary>
     protected readonly BlockBuilder<V> Builder;
+    public IBlockBuilder<V> BlockBuilder => Builder;
 
     private readonly List<IBlock<V>> _blocks = [];
     private readonly PipeBlockOptions _options;

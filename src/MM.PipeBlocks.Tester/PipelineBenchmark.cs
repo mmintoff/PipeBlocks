@@ -43,11 +43,12 @@ public class PipelineBenchmark
 
         var builder = serviceProvider.GetRequiredService<BlockBuilder<CustomValue1>>();
 
-        var adapterPipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "adapterPipe" }), new MyAdapter())
-            .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
-            ;
+        //var adapterPipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "adapterPipe" }), new MyAdapter())
+        //    .Then(b => b.Run(p => { p.Value.Start.AddMinutes(1); }))
+        //    ;
 
         var startFromPipe = builder.CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "steppedPipe" }), v => v.Value.Step)
+            .Then(builder.Run(c => { }))
             .Then(builder.Run(c => { _ = 1 + 1; }))
             .Then(builder.Run(c => { _ = 1 * 1; }))
             .Then(builder.Run(c => { _ = 1 / 1; }))

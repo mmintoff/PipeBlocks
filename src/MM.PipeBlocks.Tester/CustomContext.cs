@@ -24,3 +24,19 @@ public class CustomValue2 : ICustomValue
     public int Step { get; set; }
     public DateTime Start { get; set; }
 }
+
+public class CustomValue3 : ICustomValue
+{
+    public int Count { get; set; }
+    public string Description { get; set; }
+    public int Step { get; set; }
+    public DateTime Start { get; set; }
+}
+
+public class CustomValue4 : ICustomValue
+{
+    public int Count { get; set; }
+    public string Description { get; set; }
+    public int Step { get; set; }
+    public DateTime Start { get; set; }
+}
