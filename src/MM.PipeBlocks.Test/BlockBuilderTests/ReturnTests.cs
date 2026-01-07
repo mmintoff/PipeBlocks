@@ -56,7 +56,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
@@ -89,7 +89,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
@@ -122,7 +122,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
@@ -154,7 +154,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s =>
             {
                 Assert.Equal(expected, s.Counter);
@@ -185,7 +185,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -214,7 +214,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -244,7 +244,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -274,7 +274,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -304,7 +304,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -333,7 +333,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -363,7 +363,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -393,7 +393,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 
@@ -423,7 +423,7 @@ public class ReturnTests
             ctx.Set("Counter", 0);
         });
         result.Match(
-            f => Assert.Equal(expected, f.Value.Counter),
+            f => Assert.Equal(expected, f.TryGetValue<MyValue>(out var fc) ? fc.Counter : default),
             s => Assert.Equal(expected, s.Counter));
     }
 }

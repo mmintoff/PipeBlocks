@@ -52,7 +52,7 @@ public class FuncBlockTests
         result.Match(
             f =>
             {
-                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, f.TryGetValue<MyValue>(out var xc) ? xc.Identifier : default);
                 Assert.Equal(value.CorrelationId, f.CorrelationId);
                 Assert.Equal("Intentional", f.FailureReason);
                 Assert.True(actionExecuted);
@@ -83,7 +83,7 @@ public class FuncBlockTests
         result.Match(
             f =>
             {
-                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, f.GetValue<MyValue>().Identifier);
                 Assert.Equal(value.CorrelationId, f.CorrelationId);
                 Assert.Equal("Initial Failure", f.FailureReason);
                 Assert.False(actionExecuted);
@@ -171,7 +171,7 @@ public class FuncBlockTests
         result.Match(
             f =>
             {
-                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, f.GetValue<MyValue>().Identifier);
                 Assert.Equal(result.CorrelationId, f.CorrelationId);
                 Assert.Equal("Intentional", f.FailureReason);
                 Assert.True(actionExecuted);
@@ -206,7 +206,7 @@ public class FuncBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.GetValue<MyValue>().Identifier);
                 Assert.Equal(result.CorrelationId, x.CorrelationId);
                 Assert.Equal("Initial Failure", x.FailureReason);
                 Assert.False(actionExecuted);
@@ -259,7 +259,7 @@ public class FuncBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.GetValue<MyValue>().Identifier);
                 Assert.Equal(value.CorrelationId, x.CorrelationId);
                 Assert.Equal("Intentional", x.FailureReason);
                 Assert.Equal("MM.PipeBlocks.FuncBlock`1[MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsFailureContext>g__simpleFunc|8_0)", funcBlock.ToString());
@@ -311,7 +311,7 @@ public class FuncBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.GetValue<MyValue>().Identifier);
                 Assert.Equal(value.CorrelationId, x.CorrelationId);
                 Assert.Equal("Intentional", x.FailureReason);
                 Assert.Equal("MM.PipeBlocks.FuncBlock`1[MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithValueFunction_ReturnsFailedContext>g__valueFunc|10_0)", funcBlock.ToString());
@@ -383,7 +383,7 @@ public class FuncBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.GetValue<MyValue>().Identifier);
                 Assert.Equal(result.CorrelationId, x.CorrelationId);
                 Assert.Equal("Intentional", x.FailureReason);
                 Assert.Equal("MM.PipeBlocks.AsyncFuncBlock`1[MM.PipeBlocks.Test.MyValue] (Method: MM.PipeBlocks.Test.FuncBlockTests.<Execute_WithSimpleFunction_ReturnsFailureContext_Async>g__simpleFunc|13_0)", funcBlock.ToString());

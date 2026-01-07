@@ -16,6 +16,8 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     protected readonly BlockBuilder<V> Builder;
     public IBlockBuilder<V> BlockBuilder => Builder;
 
+    public PipeBlockOptions Options => _options;
+
     /// <summary>
     /// The list of blocks that make up the pipeline.
     /// </summary>
@@ -182,4 +184,18 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
         ? !(value.Context.IsFinished || value.IsFailure)
         : value.Context.IsFinished || value.IsFailure;
+
+    public MapPipeBlock<V, V, VNext> ThenMap<VNext, X>()
+        where X : IBlock<V, VNext>
+        => new(this,
+            BlockBuilder.CreateBlockBuilder<V, VNext>().ResolveInstance<X>(),
+            (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
+
+    public MapPipeBlock<V, V, VNext> ThenMap<VNext>(IBlock<V, VNext> block)
+        => new(this, block, (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
+
+    public MapPipeBlock<V, V, VNext> ThenMap<VNext>(Func<BlockBuilder<V, VNext>, IBlock<V, VNext>> func)
+        => new(this,
+            func((BlockBuilder<V, VNext>)BlockBuilder.CreateBlockBuilder<V, VNext>()),
+            (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
 }

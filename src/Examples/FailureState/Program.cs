@@ -35,7 +35,7 @@ result.Match(
         Console.ForegroundColor = ConsoleColor.Red;
         Console.Write("Failure: ");
         Console.ResetColor();
-        Console.WriteLine($"{failure.FailureReason} with counter of {failure.Value.Counter}");
+        Console.WriteLine($"{failure.FailureReason} with counter of {failure.GetValue<MyValueType>().Counter}");
     },
     success =>
     {

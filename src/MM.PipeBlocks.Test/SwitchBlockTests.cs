@@ -96,7 +96,7 @@ public class SwitchBlockTests
         result.Match(
         x =>
         {
-            Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+            Assert.Equal(initialValue.Identifier, x.TryGetValue<MyValue>(out var xc) ? xc.Identifier : default);
             Assert.Equal(value.CorrelationId, x.CorrelationId);
             Assert.Equal("Intentional", x.FailureReason);
         },
@@ -218,7 +218,7 @@ public class SwitchBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.TryGetValue<MyValue>(out var xc) ? xc.Identifier : default);
                 Assert.Equal(value.CorrelationId, x.CorrelationId);
                 Assert.Equal("Intentional", x.FailureReason);
             },

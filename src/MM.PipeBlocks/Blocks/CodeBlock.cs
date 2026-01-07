@@ -34,6 +34,19 @@ public abstract class CodeBlock<V> : ISyncBlock<V>
     protected abstract Parameter<V> Execute(Parameter<V> parameter, V extractedValue);
 }
 
+public abstract class CodeBlock<VIn, VOut> : ISyncBlock<VIn, VOut>
+{
+    public Parameter<VOut> Execute(Parameter<VIn> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return new Parameter<VOut>(value.Failure);
+
+        return Execute(value, value.Value);
+    }
+
+    protected abstract Parameter<VOut> Execute(Parameter<VIn> parameter, VIn extractedValue);
+}
+
 /// <summary>
 /// Represents an asynchronous code block that processes a parameter, optionally using a value from the parameter.
 /// </summary>
@@ -62,4 +75,17 @@ public abstract class AsyncCodeBlock<V> : IAsyncBlock<V>
     /// <param name="extractedValue">The value extracted from the parameter.</param>
     /// <returns>A <see cref="ValueTask{T}"/> representing the result of the asynchronous operation.</returns>
     protected abstract ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> parameter, V extractedValue);
+}
+
+public abstract class AsyncCodeBlock<VIn, VOut> : IAsyncBlock<VIn, VOut>
+{
+    public ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VIn> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return ValueTask.FromResult(new Parameter<VOut>(value.Failure));
+
+        return ExecuteAsync(value, value.Value);
+    }
+
+    protected abstract ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VIn> parameter, VIn extractedValue);
 }

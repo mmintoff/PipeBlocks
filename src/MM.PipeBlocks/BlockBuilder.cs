@@ -57,10 +57,18 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
     public ILogger<X> CreateLogger<X>()
         => loggerFactory.CreateLogger<X>();
 
-    IPipeBlock<V> IBlockBuilder<V>.CreatePipe(IOptions<PipeBlockOptions> options)
-    {
-        return CreatePipe(options);
-    }
-
     public IBlockBuilder<V2> CreateBlockBuilder<V2>() => resolver.CreateBlockBuilder<V2>();
+    public IBlockBuilder<VIn2, VOut2> CreateBlockBuilder<VIn2, VOut2>() => resolver.CreateBlockBuilder<VIn2, VOut2>();
+}
+
+public class BlockBuilder<VIn, VOut>(IBlockResolver<VIn, VOut> resolver) : IBlockBuilder<VIn, VOut>
+{
+    public BlockBuilder()
+        : this(new DefaultBlockResolver<VIn, VOut>()) { }
+
+    public IBlockBuilder<VIn2, VOut2> CreateBlockBuilder<VIn2, VOut2>()
+        => resolver.CreateBlockBuilder<VIn2, VOut2>();
+
+    public X ResolveInstance<X>() where X : IBlock<VIn, VOut>
+        => resolver.ResolveInstance<X>();
 }
