@@ -176,6 +176,9 @@ public class MyBlockResolver<V> : IBlockResolver<V>
 
     public IBlockBuilder<Y> CreateBlockBuilder<Y>()
         => new BlockBuilder<Y>();
+
+    public IBlockBuilder<X, Y> CreateBlockBuilder<X, Y>()
+        => new BlockBuilder<X, Y>();
 }
 
 /**/

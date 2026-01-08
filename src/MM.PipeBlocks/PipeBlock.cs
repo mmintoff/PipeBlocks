@@ -14,7 +14,6 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// The <see cref="BlockBuilder{V}"/> used to resolve and create blocks.
     /// </summary>
     protected readonly BlockBuilder<V> Builder;
-    public IBlockBuilder<V> BlockBuilder => Builder;
 
     public PipeBlockOptions Options => _options;
 
@@ -185,17 +184,11 @@ public partial class PipeBlock<V> : IPipeBlock<V>
         ? !(value.Context.IsFinished || value.IsFailure)
         : value.Context.IsFinished || value.IsFailure;
 
-    public MapPipeBlock<V, V, VNext> ThenMap<VNext, X>()
-        where X : IBlock<V, VNext>
-        => new(this,
-            BlockBuilder.CreateBlockBuilder<V, VNext>().ResolveInstance<X>(),
-            (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
-
-    public MapPipeBlock<V, V, VNext> ThenMap<VNext>(IBlock<V, VNext> block)
-        => new(this, block, (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
-
-    public MapPipeBlock<V, V, VNext> ThenMap<VNext>(Func<BlockBuilder<V, VNext>, IBlock<V, VNext>> func)
-        => new(this,
-            func((BlockBuilder<V, VNext>)BlockBuilder.CreateBlockBuilder<V, VNext>()),
-            (BlockBuilder<VNext>)BlockBuilder.CreateBlockBuilder<VNext>());
+    /// <summary>
+    /// Begins a mapping operation to transform the pipeline output to type <typeparamref name="VNext"/>.
+    /// Returns a <see cref="Mapper{V, VNext}"/> that requires a block to be specified via <see cref="Mapper{V, VNext}.Via{X}"/> to complete the mapping.
+    /// </summary>
+    /// <typeparam name="VNext">The target type to map to.</typeparam>
+    /// <returns>A mapper configuration that must be completed by specifying a transformation block.</returns>
+    public Mapper<V, VNext> Map<VNext>() => new(this, Builder);
 }

@@ -37,9 +37,9 @@ var pipe = builder
     .CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "testPipe" }))
     .Then(b => b.Run(_ => Console.WriteLine("1")))
     .Then(b => b.Run(_ => Console.WriteLine("2")))
-    .ThenMap<CustomValue2>(b => b.ResolveInstance<V2MapBlock>())
+    .Map<CustomValue2>().Via<V2MapBlock>()
     .Then<V2CodeBlock>()
-    .ThenMap<CustomValue3, V3MapBlock>()
+    .Map<CustomValue3>().Via<V3MapBlock>()
     .Then<V3CodeBlock>()
     ;
 

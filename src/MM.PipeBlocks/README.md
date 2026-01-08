@@ -711,6 +711,81 @@ asyncResult.Match(
 - ✅ **Clean execution** - Async execution uses proper `await` without `.Result` anti-patterns
 - ✅ **Context preserved** - Context carries through both sync and async blocks
 
+### Type Transformation with Mapping
+
+When your pipeline needs to transform data from one type to another (for example, converting an `Order` to a `Payment`, then to a `Receipt`), use the `.Map<TNext>().Via<TBlock>()` pattern. This enables heterogeneous pipelines where each stage produces a different output type.
+
+#### Why Use Mapping?
+
+Traditional homogeneous pipelines work with a single type throughout:
+```csharp
+// Homogeneous pipeline - all blocks work with Order
+var pipe = builder.CreatePipe(options)
+    .Then()  // Order → Order
+    .Then()  // Order → Order
+    .Then(); // Order → Order
+```
+
+But many real-world workflows need to transform data as it flows through stages:
+```csharp
+// Heterogeneous pipeline - types change at each stage
+var pipe = builder.CreatePipe(options)
+    .Then<OrderBlock>()                         // Order → Order
+    .Map<PaymentValue>().Via<PaymentBlock>()    // Order → Payment
+    .Map<ReceiptValue>().Via<ReceiptBlock>()    // Payment → Receipt
+    .Map<ShipmentValue>().Via<ShipmentBlock>(); // Receipt → Shipment
+```
+
+#### The Mapping Pattern
+
+The mapping syntax has two parts:
+1. **`.Map<TNext>()`** - Declares the target type you're transforming to
+2. **`.Via<TBlock>()`** - Specifies the block that performs the transformation
+```csharp
+.Map<TNext>().Via<TBlock>()
+```
+
+#### Complete Example
+
+**Define your data models:**
+```csharp
+public class Order
+{
+    public int OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string CustomerEmail { get; set; }
+}
+
+public class Payment
+{
+    public int OrderId { get; set; }
+    public string TransactionId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime ProcessedAt { get; set; }
+}
+
+public class Receipt
+{
+    public int OrderId { get; set; }
+    public string ReceiptNumber { get; set; }
+    public decimal Total { get; set; }
+}
+
+public class Shipment
+{
+    public int OrderId { get; set; }
+    public string TrackingNumber { get; set; }
+    public DateTime EstimatedDelivery { get; set; }
+}
+```
+
+**Create transformation blocks:**
+
+Each mapping block transforms from one type to another using `MapBlock<TIn, TOut>`:
+```csharp
+
+```
+
 ### Automatic Exception Handling
 
 By default, MM.PipeBlocks allows exceptions to propagate, but you can optionally configure the pipeline to catch unhandled exceptions automatically and convert them to an `ExceptionFailureState<V>`. This eliminates the need for try/catch blocks in your business logic:
