@@ -12,12 +12,12 @@ public class TryCatchBlock<V>(
     ILogger<TryCatchBlock<V>> logger,
     IBlock<V> tryBlock,
     IBlock<V>? catchBlock = null,
-    IBlock<V>? finallyBlock = null
+    IBlock<V>? finallyBlock = null,
+    bool shouldThrow = false
 ) : ISyncBlock<V>, IAsyncBlock<V>
 {
     private static readonly Action<ILogger, Guid, string, Exception?> s_failure_occurred = LoggerMessage.Define<Guid, string>(LogLevel.Trace, default, "Failure occurred executing {CorrelationId} with '{FailureReason}'");
     private static readonly Action<ILogger, Guid, string, Exception?> s_exception_occurred = LoggerMessage.Define<Guid, string>(LogLevel.Trace, default, "Exception occurred executing {CorrelationId} with '{ExceptionMessage}'");
-
 
     /// <summary>
     /// Executes the block synchronously, applying try-catch-finally behavior.
@@ -46,6 +46,9 @@ public class TryCatchBlock<V>(
             shouldFlip = true;
             s_exception_occurred(logger, value.Context.CorrelationId, ex.Message, ex);
             value = FlipExecute(shouldFlip, catchBlock, value);
+
+            if (shouldThrow)
+                throw;
         }
         finally
         {
@@ -94,6 +97,9 @@ public class TryCatchBlock<V>(
             shouldFlip = true;
             s_exception_occurred(logger, value.Context.CorrelationId, ex.Message, ex);
             value = await FlipExecuteAsync(shouldFlip, catchBlock, value);
+
+            if (shouldThrow)
+                throw;
         }
         finally
         {

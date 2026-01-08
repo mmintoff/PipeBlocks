@@ -57,11 +57,13 @@ public partial class BlockBuilder<V>(IBlockResolver<V> resolver, ILoggerFactory 
     public ILogger<X> CreateLogger<X>()
         => loggerFactory.CreateLogger<X>();
 
-    public IBlockBuilder<V2> CreateBlockBuilder<V2>() => resolver.CreateBlockBuilder<V2>();
-    public IBlockBuilder<VIn2, VOut2> CreateBlockBuilder<VIn2, VOut2>() => resolver.CreateBlockBuilder<VIn2, VOut2>();
+    public IBlockBuilder<V2> CreateBlockBuilder<V2>()
+        => resolver.CreateBlockBuilder<V2>();
+    public IBlockBuilder<VIn2, VOut2> CreateBlockBuilder<VIn2, VOut2>()
+        => resolver.CreateBlockBuilder<VIn2, VOut2>();
 }
 
-public class BlockBuilder<VIn, VOut>(IBlockResolver<VIn, VOut> resolver) : IBlockBuilder<VIn, VOut>
+public partial class BlockBuilder<VIn, VOut>(IBlockResolver<VIn, VOut> resolver) : IBlockBuilder<VIn, VOut>
 {
     public BlockBuilder()
         : this(new DefaultBlockResolver<VIn, VOut>()) { }

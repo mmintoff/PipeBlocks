@@ -37,9 +37,19 @@ var pipe = builder
     .CreatePipe(Options.Create(new PipeBlockOptions { PipeName = "testPipe" }))
     .Then(b => b.Run(_ => Console.WriteLine("1")))
     .Then(b => b.Run(_ => Console.WriteLine("2")))
-    .Map<CustomValue2>().Via<V2MapBlock>()
+    .Map<CustomValue2>().Via<V2MapBlock>() // Generic resolve
     .Then<V2CodeBlock>()
-    .Map<CustomValue3>().Via<V3MapBlock>()
+    .Map<CustomValue3>().Via(b => b.Run(x => // Function resolve
+        x.Match(
+            f => new Parameter<CustomValue3>(f),
+            s => new CustomValue3
+            {
+                Count = s.Count,
+                Description = "New Value",
+                Start = s.Start,
+                Step = s.Step,
+            })
+    ))
     .Then<V3CodeBlock>()
     ;
 
@@ -68,6 +78,7 @@ public class V2MapBlock : CodeBlock<CustomValue1, CustomValue2>
 {
     protected override Parameter<CustomValue2> Execute(Parameter<CustomValue1> parameter, CustomValue1 extractedValue)
     {
+        parameter.Context.Set("abc", 123);
         Console.WriteLine($"Received {parameter}, sending CustomValue2");
         return new CustomValue2();
     }
@@ -95,7 +106,9 @@ public class V3CodeBlock : CodeBlock<CustomValue3>
 {
     protected override Parameter<CustomValue3> Execute(Parameter<CustomValue3> parameter, CustomValue3 value)
     {
-        Console.WriteLine($"Executing {parameter.Match(_ => 0, x => x.Count)}");
+        parameter.Context.TryGet<int>("abc", out var abc);
+
+        Console.WriteLine($"Found: [{abc}]");
         return parameter;
     }
 }

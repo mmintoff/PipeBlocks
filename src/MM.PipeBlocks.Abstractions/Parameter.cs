@@ -13,7 +13,9 @@ public class Parameter<V> : IEither<IFailureState, V>
     public V Value
     {
         get => _either.Match(
-            _ => throw new InvalidOperationException("Cannot access Value on failed parameter. Check IsFailure before accessing Value."),
+            f => f.TryGetValue<V>(out var result)
+                ? result!
+                : throw new InvalidOperationException($"Cannot access Value of type {typeof(V).Name} from failure state. The failure contains a value of type {f.Value.GetType().Name}."),
             s => s
         );
     }
@@ -27,7 +29,10 @@ public class Parameter<V> : IEither<IFailureState, V>
     {
         if (!IsFailure)
         {
-            value = _either.Match(_ => default!, right => right);
+            value = _either.Match(
+                f => f.TryGetValue<V>(out var result) ? result!
+                    : throw new InvalidOperationException($"Cannot extract value of type {typeof(V).Name} from failure state containing {f.Value.GetType().Name}. This indicates an internal inconsistency - parameter is not in failure state but contains failure data."),
+                right => right);
             return true;
         }
         value = default!;
@@ -38,7 +43,9 @@ public class Parameter<V> : IEither<IFailureState, V>
     {
         if (IsFailure)
         {
-            failure = _either.Match(left => left, _ => default!);
+            failure = _either.Match(
+                left => left,
+                _ => default!);
             return true;
         }
         failure = default!;

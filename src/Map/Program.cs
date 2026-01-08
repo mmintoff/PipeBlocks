@@ -17,7 +17,7 @@ serviceCollection.AddLogging(configure =>
 {
     configure.ClearProviders();
     configure.AddConsole();
-    configure.SetMinimumLevel(LogLevel.Trace);
+    configure.SetMinimumLevel(LogLevel.Information);
 });
 var serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -31,7 +31,9 @@ var pipe = builder.CreatePipe(Options.Create(new MM.PipeBlocks.Abstractions.Pipe
 
 var result = pipe.Execute(new Order
 {
-    OrderId = 12345
+    OrderId = 12345,
+    Amount = 99.99M,
+    CustomerEmail = "customer@example.com"
 });
 result.Match(
     failure =>
@@ -44,7 +46,9 @@ result.Match(
     success =>
     {
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write("Success: ");
+        Console.WriteLine("Success");
         Console.ResetColor();
-        Console.WriteLine($"Order {success.OrderId} Completed");
+        Console.WriteLine($"   Order    : {success.OrderId}");
+        Console.WriteLine($"   Tracking : {success.TrackingNumber}");
+        Console.WriteLine($"   Delivery : {success.EstimatedDelivery}");
     });

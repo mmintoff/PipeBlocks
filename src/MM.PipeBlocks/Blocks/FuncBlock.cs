@@ -1,4 +1,5 @@
 ﻿using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Internal;
 using System.Runtime.CompilerServices;
 
 #pragma warning disable IDE0130 // Namespace does not match folder structure
@@ -16,12 +17,6 @@ public class FuncBlock<V> : ISyncBlock<V>
     private readonly ExecutionStrategy _executionStrategy;
 
     private string? _fullName;
-
-    private enum ExecutionStrategy : byte
-    {
-        Func,
-        Action
-    }
 
     /// <summary>
     /// Initializes a new instance using a function that transforms the parameter.
@@ -56,14 +51,12 @@ public class FuncBlock<V> : ISyncBlock<V>
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Parameter<V> ExecuteWithStrategy(Parameter<V> value)
-    {
-        return _executionStrategy switch
+        => _executionStrategy switch
         {
             ExecutionStrategy.Func => _func!(value),
             ExecutionStrategy.Action => ExecuteAction(_action!, value),
             _ => throw new InvalidOperationException("Invalid execution strategy")
         };
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Parameter<V> ExecuteAction(Action<Parameter<V>> action, Parameter<V> value)
@@ -91,6 +84,41 @@ public class FuncBlock<V> : ISyncBlock<V>
     }
 }
 
+public class FuncBlock<VIn, VOut> : ISyncBlock<VIn, VOut>
+{
+    private readonly Func<Parameter<VIn>, Parameter<VOut>> _func;
+
+    private string? _fullName;
+
+    public FuncBlock(Func<Parameter<VIn>, Parameter<VOut>> func)
+    {
+        _func = func ?? throw new ArgumentNullException(nameof(func));
+    }
+
+    public Parameter<VOut> Execute(Parameter<VIn> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return new Parameter<VOut>(value.Failure)
+            {
+                Context = value.Context
+            };
+
+        return _func(value);
+    }
+
+    public override string ToString() => _fullName ??= GetFullName();
+
+    private string GetFullName()
+    {
+        var method = _func?.Method;
+        var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
+        var methodName = method?.Name ?? "UnknownMethod";
+        var baseName = base.ToString() ?? nameof(FuncBlock<>);
+
+        return $"{baseName} (Method: {typeName}.{methodName})";
+    }
+}
+
 /// <summary>
 /// An asynchronous block that executes a function or action with optional access to the parameter's value.
 /// </summary>
@@ -103,12 +131,6 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
     private readonly ExecutionStrategy _executionStrategy;
 
     private string? _fullName;
-
-    private enum ExecutionStrategy : byte
-    {
-        Func,
-        Action
-    }
 
     /// <summary>
     /// Initializes a new instance using an asynchronous function that returns a parameter.
@@ -175,5 +197,28 @@ public class AsyncFuncBlock<V> : IAsyncBlock<V>
         var baseName = base.ToString() ?? nameof(AsyncFuncBlock<>);
 
         return $"{baseName} (Method: {typeName}.{methodName})";
+    }
+}
+
+public class AsyncFuncBlock<VIn, VOut> : IAsyncBlock<VIn, VOut>
+{
+    private readonly Func<Parameter<VIn>, ValueTask<Parameter<VOut>>> _func;
+
+    private string? _fullName;
+
+    public AsyncFuncBlock(Func<Parameter<VIn>, ValueTask<Parameter<VOut>>> func)
+    {
+        _func = func ?? throw new ArgumentNullException(nameof(func));
+    }
+
+    public ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VIn> value)
+    {
+        if (value.IsFailure && !value.Context.IsFlipped)
+            return ValueTask.FromResult(new Parameter<VOut>(value.Failure)
+            {
+                Context = value.Context
+            });
+
+        return _func(value);
     }
 }

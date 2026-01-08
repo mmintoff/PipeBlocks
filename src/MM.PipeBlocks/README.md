@@ -783,8 +783,127 @@ public class Shipment
 
 Each mapping block transforms from one type to another using `MapBlock<TIn, TOut>`:
 ```csharp
+public class ValidateOrderBlock : CodeBlock<Order>
+{
+    protected override Parameter<Order> Execute(Parameter<Order> parameter, Order extractedValue)
+    {
+        if (extractedValue.Amount <= 0)
+            parameter.SignalBreak("Amount less than or equal to 0");
+        return extractedValue;
+    }
+}
 
+public class PlaceOrderBlock : AsyncCodeBlock<Order, Payment>
+{
+    protected override async ValueTask<Parameter<Payment>> ExecuteAsync(Parameter<Order> parameter, Order extractedValue)
+    {
+        await Task.Delay(100); // Simulate payment gateway
+
+        return new Payment
+        {
+            OrderId = extractedValue.OrderId,
+            TransactionId = Random.Shared.Next(10000, 100000).ToString(),
+            Amount = extractedValue.Amount,
+            ProcessedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public class ReceiptBlock : CodeBlock<Payment, Receipt>
+{
+    protected override Parameter<Receipt> Execute(Parameter<Payment> parameter, Payment extractedValue)
+        => new Receipt
+        {
+            OrderId = extractedValue.OrderId,
+            ReceiptNumber = $"RCP-{extractedValue.TransactionId}",
+            Total = extractedValue.Amount
+        };
+}
+
+public class ShipmentBlock : CodeBlock<Receipt, Shipment>
+{
+    protected override Parameter<Shipment> Execute(Parameter<Receipt> parameter, Receipt extractedValue)
+        => new Shipment
+        {
+            OrderId = extractedValue.OrderId,
+            TrackingNumber = $"TR-{extractedValue.ReceiptNumber}",
+            EstimatedDelivery = DateTime.UtcNow.AddDays(Random.Shared.Next(1, 15))
+        };
+}
 ```
+
+**Build the heterogeneous pipeline:**
+```csharp
+var serviceCollection = new ServiceCollection();
+serviceCollection
+    .AddPipeBlocks()
+    .AddTransientBlock<ValidateOrderBlock>()
+    .AddTransientBlock<PlaceOrderBlock>()
+    .AddTransientBlock<ReceiptBlock>()
+    .AddTransientBlock<ShipmentBlock>()
+    ;
+serviceCollection.AddLogging(...);
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var builder = serviceProvider.GetRequiredService<BlockBuilder<Order>>();
+var pipe = builder.CreatePipe(Options.Create(new MM.PipeBlocks.Abstractions.PipeBlockOptions { PipeName = "order pipe" }))
+                .Then<ValidateOrderBlock>()
+                .Map<Payment>().Via<PlaceOrderBlock>()
+                .Map<Receipt>().Via<ReceiptBlock>()
+                .Map<Shipment>().Via<ShipmentBlock>()
+                ;
+
+var result = pipe.Execute(new Order
+{
+    OrderId = 12345,
+    Amount = 99.99M,
+    CustomerEmail = "customer@example.com"
+});
+
+result.Match(
+    failure =>
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Write("Failure: ");
+        Console.ResetColor();
+        Console.WriteLine(failure.FailureReason);
+    },
+    success =>
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.Write("Success: ");
+        Console.ResetColor();
+        Console.WriteLine($"   Order    : {success.OrderId}");
+        Console.WriteLine($"   Tracking : {success.TrackingNumber}");
+        Console.WriteLine($"   Delivery : {success.EstimatedDelivery}");
+    });
+```
+
+**Output:**
+```
+info: MM.PipeBlocks.PipeBlock[0]
+      Created pipe: 'order pipe'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Payment] via [Order]'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Receipt] via [Payment]'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Shipment] via [Receipt]'
+Success
+   Order    : 12345
+   Tracking : TR-RCP-88110
+   Delivery : 17/01/2026 14:56:35
+```
+
+#### Key Benefits
+
+- ✅ **Type Safety** - Compiler enforces that output of one stage matches input of next
+- ✅ **Clear Intent** - `.Map<T>().Via<Block>()` explicitly shows type transformations
+- ✅ **Composability** - Mix homogeneous and heterogeneous steps freely
+- ✅ **DI Integration** - Blocks resolved from dependency injection
+- ✅ **Early Failure** - Failures at any stage stop the pipeline immediately
+- ✅ **Context Preservation** - Context flows through type transformations
 
 ### Automatic Exception Handling
 

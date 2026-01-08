@@ -39,7 +39,10 @@ public abstract class CodeBlock<VIn, VOut> : ISyncBlock<VIn, VOut>
     public Parameter<VOut> Execute(Parameter<VIn> value)
     {
         if (value.IsFailure && !value.Context.IsFlipped)
-            return new Parameter<VOut>(value.Failure);
+            return new Parameter<VOut>(value.Failure)
+            {
+                Context = value.Context
+            };
 
         return Execute(value, value.Value);
     }
@@ -82,7 +85,10 @@ public abstract class AsyncCodeBlock<VIn, VOut> : IAsyncBlock<VIn, VOut>
     public ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VIn> value)
     {
         if (value.IsFailure && !value.Context.IsFlipped)
-            return ValueTask.FromResult(new Parameter<VOut>(value.Failure));
+            return ValueTask.FromResult(new Parameter<VOut>(value.Failure)
+            {
+                Context = value.Context
+            });
 
         return ExecuteAsync(value, value.Value);
     }

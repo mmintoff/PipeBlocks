@@ -1,4 +1,5 @@
 ﻿using MM.PipeBlocks.Abstractions;
+using MM.PipeBlocks.Internal;
 using Nito.AsyncEx;
 using System.Runtime.CompilerServices;
 
@@ -25,7 +26,7 @@ public static class BlockExecutor
         Parameter<VIn> value,
         bool handleExceptions = false)
     {
-        return block switch
+        var result = block switch
         {
             ISyncBlock<VIn, VOut> syncBlock when handleExceptions => ExecuteSyncHandled(syncBlock, value),
             ISyncBlock<VIn, VOut> syncBlock => syncBlock.Execute(value),
@@ -33,6 +34,7 @@ public static class BlockExecutor
             IAsyncBlock<VIn, VOut> asyncBlock => ExecuteAsyncSynchronously(asyncBlock, value),
             _ => throw new InvalidOperationException($"Block does not implement ISyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}> or IAsyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}>")
         };
+        return Merger.Merge(result, value);
     }
 
     /// <summary>
@@ -51,7 +53,7 @@ public static class BlockExecutor
         Parameter<VIn> value,
         bool handleExceptions = false)
     {
-        return block switch
+        var vt = block switch
         {
             IAsyncBlock<VIn, VOut> asyncBlock when handleExceptions => ExecuteAsyncHandled(asyncBlock, value),
             IAsyncBlock<VIn, VOut> asyncBlock => asyncBlock.ExecuteAsync(value),
@@ -59,6 +61,11 @@ public static class BlockExecutor
             ISyncBlock<VIn, VOut> syncBlock => ValueTask.FromResult(syncBlock.Execute(value)),
             _ => throw new InvalidOperationException($"Block does not implement ISyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}> or IAsyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}>")
         };
+
+        if (vt.IsCompletedSuccessfully)
+            return ValueTask.FromResult(Merger.Merge(vt.Result, value));
+
+        return Merger.AwaitAndMerge(vt, value);
     }
 
     // No hint - let JIT decide (has try/catch)

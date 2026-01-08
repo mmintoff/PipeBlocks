@@ -13,18 +13,18 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="elseThis">The block to execute if an exception is thrown.</param>
-    public TryCatchBlock<V> TryCatch(IBlock<V> tryThis, IBlock<V> elseThis)
-        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, null);
+    public TryCatchBlock<V> TryCatch(IBlock<V> tryThis, IBlock<V> elseThis, bool shouldThrow = false)
+        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, null, shouldThrow);
 
     /// <summary>
     /// Wraps the specified generic blocks in a try-catch structure.
     /// </summary>
     /// <typeparam name="X">The block to execute in the try section.</typeparam>
     /// <typeparam name="Y">The block to execute in the catch section.</typeparam>
-    public TryCatchBlock<V> TryCatch<X, Y>()
+    public TryCatchBlock<V> TryCatch<X, Y>(bool shouldThrow = false)
         where X : IBlock<V>
         where Y : IBlock<V>
-        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), ResolveInstance<Y>(), null);
+        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), ResolveInstance<Y>(), null, shouldThrow);
 
     #endregion
 
@@ -35,18 +35,18 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="finallyThis">The block to execute in the finally section.</param>
-    public TryCatchBlock<V> TryFinally(IBlock<V> tryThis, IBlock<V> finallyThis)
-        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, null, finallyThis);
+    public TryCatchBlock<V> TryFinally(IBlock<V> tryThis, IBlock<V> finallyThis, bool shouldThrow = false)
+        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, null, finallyThis, shouldThrow);
 
     /// <summary>
     /// Wraps the specified generic blocks in a try-finally structure.
     /// </summary>
     /// <typeparam name="X">The block to execute in the try section.</typeparam>
     /// <typeparam name="Y">The block to execute in the finally section.</typeparam>
-    public TryCatchBlock<V> TryFinally<X, Y>()
+    public TryCatchBlock<V> TryFinally<X, Y>(bool shouldThrow = false)
         where X : IBlock<V>
         where Y : IBlock<V>
-        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), null, ResolveInstance<Y>());
+        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), null, ResolveInstance<Y>(), shouldThrow);
 
     #endregion
 
@@ -58,8 +58,8 @@ public partial class BlockBuilder<V>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="elseThis">The block to execute in the catch section.</param>
     /// <param name="finallyThis">The block to execute in the finally section.</param>
-    public TryCatchBlock<V> TryCatchFinally(IBlock<V> tryThis, IBlock<V> elseThis, IBlock<V> finallyThis)
-        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, finallyThis);
+    public TryCatchBlock<V> TryCatchFinally(IBlock<V> tryThis, IBlock<V> elseThis, IBlock<V> finallyThis, bool shouldThrow = false)
+        => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, finallyThis, shouldThrow);
 
     /// <summary>
     /// Wraps the specified generic blocks in a full try-catch-finally structure.
@@ -67,11 +67,11 @@ public partial class BlockBuilder<V>
     /// <typeparam name="X">The block to execute in the try section.</typeparam>
     /// <typeparam name="Y">The block to execute in the catch section.</typeparam>
     /// <typeparam name="Z">The block to execute in the finally section.</typeparam>
-    public TryCatchBlock<V> TryCatchFinally<X, Y, Z>()
+    public TryCatchBlock<V> TryCatchFinally<X, Y, Z>(bool shouldThrow = false)
         where X : IBlock<V>
         where Y : IBlock<V>
         where Z : IBlock<V>
-        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), ResolveInstance<Y>(), ResolveInstance<Z>());
+        => new(CreateLogger<TryCatchBlock<V>>(), ResolveInstance<X>(), ResolveInstance<Y>(), ResolveInstance<Z>(), shouldThrow);
 
     #endregion
 }
