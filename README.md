@@ -711,6 +711,200 @@ asyncResult.Match(
 - ✅ **Clean execution** - Async execution uses proper `await` without `.Result` anti-patterns
 - ✅ **Context preserved** - Context carries through both sync and async blocks
 
+### Type Transformation with Mapping
+
+When your pipeline needs to transform data from one type to another (for example, converting an `Order` to a `Payment`, then to a `Receipt`), use the `.Map<TNext>().Via<TBlock>()` pattern. This enables heterogeneous pipelines where each stage produces a different output type.
+
+#### Why Use Mapping?
+
+Traditional homogeneous pipelines work with a single type throughout:
+```csharp
+// Homogeneous pipeline - all blocks work with Order
+var pipe = builder.CreatePipe(options)
+    .Then()  // Order → Order
+    .Then()  // Order → Order
+    .Then(); // Order → Order
+```
+
+But many real-world workflows need to transform data as it flows through stages:
+```csharp
+// Heterogeneous pipeline - types change at each stage
+var pipe = builder.CreatePipe(options)
+    .Then<OrderBlock>()                         // Order → Order
+    .Map<PaymentValue>().Via<PaymentBlock>()    // Order → Payment
+    .Map<ReceiptValue>().Via<ReceiptBlock>()    // Payment → Receipt
+    .Map<ShipmentValue>().Via<ShipmentBlock>(); // Receipt → Shipment
+```
+
+#### The Mapping Pattern
+
+The mapping syntax has two parts:
+1. **`.Map<TNext>()`** - Declares the target type you're transforming to
+2. **`.Via<TBlock>()`** - Specifies the block that performs the transformation
+```csharp
+.Map<TNext>().Via<TBlock>()
+```
+
+#### Complete Example
+
+**Define your data models:**
+```csharp
+public class Order
+{
+    public int OrderId { get; set; }
+    public decimal Amount { get; set; }
+    public string CustomerEmail { get; set; }
+}
+
+public class Payment
+{
+    public int OrderId { get; set; }
+    public string TransactionId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime ProcessedAt { get; set; }
+}
+
+public class Receipt
+{
+    public int OrderId { get; set; }
+    public string ReceiptNumber { get; set; }
+    public decimal Total { get; set; }
+}
+
+public class Shipment
+{
+    public int OrderId { get; set; }
+    public string TrackingNumber { get; set; }
+    public DateTime EstimatedDelivery { get; set; }
+}
+```
+
+**Create transformation blocks:**
+
+Each mapping block transforms from one type to another using `MapBlock<TIn, TOut>`:
+```csharp
+public class ValidateOrderBlock : CodeBlock<Order>
+{
+    protected override Parameter<Order> Execute(Parameter<Order> parameter, Order extractedValue)
+    {
+        if (extractedValue.Amount <= 0)
+            parameter.SignalBreak("Amount less than or equal to 0");
+        return extractedValue;
+    }
+}
+
+public class PlaceOrderBlock : AsyncCodeBlock<Order, Payment>
+{
+    protected override async ValueTask<Parameter<Payment>> ExecuteAsync(Parameter<Order> parameter, Order extractedValue)
+    {
+        await Task.Delay(100); // Simulate payment gateway
+
+        return new Payment
+        {
+            OrderId = extractedValue.OrderId,
+            TransactionId = Random.Shared.Next(10000, 100000).ToString(),
+            Amount = extractedValue.Amount,
+            ProcessedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public class ReceiptBlock : CodeBlock<Payment, Receipt>
+{
+    protected override Parameter<Receipt> Execute(Parameter<Payment> parameter, Payment extractedValue)
+        => new Receipt
+        {
+            OrderId = extractedValue.OrderId,
+            ReceiptNumber = $"RCP-{extractedValue.TransactionId}",
+            Total = extractedValue.Amount
+        };
+}
+
+public class ShipmentBlock : CodeBlock<Receipt, Shipment>
+{
+    protected override Parameter<Shipment> Execute(Parameter<Receipt> parameter, Receipt extractedValue)
+        => new Shipment
+        {
+            OrderId = extractedValue.OrderId,
+            TrackingNumber = $"TR-{extractedValue.ReceiptNumber}",
+            EstimatedDelivery = DateTime.UtcNow.AddDays(Random.Shared.Next(1, 15))
+        };
+}
+```
+
+**Build the heterogeneous pipeline:**
+```csharp
+var serviceCollection = new ServiceCollection();
+serviceCollection
+    .AddPipeBlocks()
+    .AddTransientBlock<ValidateOrderBlock>()
+    .AddTransientBlock<PlaceOrderBlock>()
+    .AddTransientBlock<ReceiptBlock>()
+    .AddTransientBlock<ShipmentBlock>()
+    ;
+serviceCollection.AddLogging(...);
+
+var serviceProvider = serviceCollection.BuildServiceProvider();
+
+var builder = serviceProvider.GetRequiredService<BlockBuilder<Order>>();
+var pipe = builder.CreatePipe(Options.Create(new MM.PipeBlocks.Abstractions.PipeBlockOptions { PipeName = "order pipe" }))
+                .Then<ValidateOrderBlock>()
+                .Map<Payment>().Via<PlaceOrderBlock>()
+                .Map<Receipt>().Via<ReceiptBlock>()
+                .Map<Shipment>().Via<ShipmentBlock>()
+                ;
+
+var result = pipe.Execute(new Order
+{
+    OrderId = 12345,
+    Amount = 99.99M,
+    CustomerEmail = "customer@example.com"
+});
+
+result.Match(
+    failure =>
+    {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Write("Failure: ");
+        Console.ResetColor();
+        Console.WriteLine(failure.FailureReason);
+    },
+    success =>
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.Write("Success: ");
+        Console.ResetColor();
+        Console.WriteLine($"   Order    : {success.OrderId}");
+        Console.WriteLine($"   Tracking : {success.TrackingNumber}");
+        Console.WriteLine($"   Delivery : {success.EstimatedDelivery}");
+    });
+```
+
+**Output:**
+```
+info: MM.PipeBlocks.PipeBlock[0]
+      Created pipe: 'order pipe'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Payment] via [Order]'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Receipt] via [Payment]'
+info: MM.PipeBlocks.MapPipeBlock[0]
+      Created pipe: '[Order]->[Shipment] via [Receipt]'
+Success
+   Order    : 12345
+   Tracking : TR-RCP-88110
+   Delivery : 17/01/2026 14:56:35
+```
+
+#### Key Benefits
+
+- ✅ **Type Safety** - Compiler enforces that output of one stage matches input of next
+- ✅ **Clear Intent** - `.Map<T>().Via<Block>()` explicitly shows type transformations
+- ✅ **Composability** - Mix homogeneous and heterogeneous steps freely
+- ✅ **DI Integration** - Blocks resolved from dependency injection
+- ✅ **Early Failure** - Failures at any stage stop the pipeline immediately
+- ✅ **Context Preservation** - Context flows through type transformations
+
 ### Automatic Exception Handling
 
 By default, MM.PipeBlocks allows exceptions to propagate, but you can optionally configure the pipeline to catch unhandled exceptions automatically and convert them to an `ExceptionFailureState<V>`. This eliminates the need for try/catch blocks in your business logic:
