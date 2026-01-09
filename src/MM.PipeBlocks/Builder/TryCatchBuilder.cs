@@ -13,6 +13,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="elseThis">The block to execute if an exception is thrown.</param>
+    /// <param name="shouldThrow">Indicates whether an exception should be rethrown after <paramref name="elseThis"/> block is executed.</param>
     public TryCatchBlock<V> TryCatch(IBlock<V> tryThis, IBlock<V> elseThis, bool shouldThrow = false)
         => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, null, shouldThrow);
 
@@ -35,6 +36,7 @@ public partial class BlockBuilder<V>
     /// </summary>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="finallyThis">The block to execute in the finally section.</param>
+    /// <param name="shouldThrow">Indicates whether an exception should be rethrown.</param>
     public TryCatchBlock<V> TryFinally(IBlock<V> tryThis, IBlock<V> finallyThis, bool shouldThrow = false)
         => new(CreateLogger<TryCatchBlock<V>>(), tryThis, null, finallyThis, shouldThrow);
 
@@ -58,6 +60,7 @@ public partial class BlockBuilder<V>
     /// <param name="tryThis">The block to execute in the try section.</param>
     /// <param name="elseThis">The block to execute in the catch section.</param>
     /// <param name="finallyThis">The block to execute in the finally section.</param>
+    /// <param name="shouldThrow">Indicates whether an exception should be rethrown after <paramref name="elseThis"/> block is executed.</param>
     public TryCatchBlock<V> TryCatchFinally(IBlock<V> tryThis, IBlock<V> elseThis, IBlock<V> finallyThis, bool shouldThrow = false)
         => new(CreateLogger<TryCatchBlock<V>>(), tryThis, elseThis, finallyThis, shouldThrow);
 

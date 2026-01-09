@@ -34,7 +34,6 @@ public sealed class MapPipeBlock<VRoot, VPrev, VOut> : IPipeBlock<VRoot, VOut>
     private readonly List<IBlock<VOut>> _blocks = [];
     private readonly PipeBlockOptions _options;
     private readonly ILogger<MapPipeBlock<VRoot, VPrev, VOut>> _logger;
-    private readonly bool _hasContextConstants;
 
     private static readonly Action<ILogger, string, Exception?> s_createdPipe = LoggerMessage.Define<string>(LogLevel.Information, default, "Created pipe: '{PipeName}'");
 
@@ -102,11 +101,6 @@ public sealed class MapPipeBlock<VRoot, VPrev, VOut> : IPipeBlock<VRoot, VOut>
         s_sync_logExecutingPipe(_logger, _options.PipeName, value.CorrelationId, null);
         var newValue = BlockExecutor.ExecuteSync(_mapBlock, prevValue);
 
-        if (_hasContextConstants)
-        {
-            _options.ConfigureContextConstants!(value.Context);
-        }
-
         for (int i = 0; i < _blocks.Count; i++)
         {
             if (IsFinished(newValue))
@@ -144,11 +138,6 @@ public sealed class MapPipeBlock<VRoot, VPrev, VOut> : IPipeBlock<VRoot, VOut>
         var prevValue = await _previousPipeBlock.ExecuteAsync(value);
         s_async_logExecutingPipe(_logger, _options.PipeName, value.CorrelationId, null);
         var newValue = await BlockExecutor.ExecuteAsync(_mapBlock, prevValue);
-
-        if (_hasContextConstants)
-        {
-            _options.ConfigureContextConstants!(value.Context);
-        }
 
         for (int i = 0; i < _blocks.Count; i++)
         {

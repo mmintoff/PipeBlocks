@@ -22,9 +22,18 @@ public interface IBlockResolver<V>
     /// <summary>
     /// Creates a new instance of a block builder for the specified value type.
     /// </summary>
-    /// <typeparam name="Y">The type of value that the block builder will build for.</typeparam>
+    /// <typeparam name="X">The type of value that the block builder will build for.</typeparam>
     /// <returns>An <see cref="IBlockBuilder{X}"/> instance for building blocks for the specified value type.</returns>
     IBlockBuilder<X> CreateBlockBuilder<X>();
 
+    /// <summary>
+    /// Creates a new instance of a block builder for the specified input and output value types.
+    /// </summary>
+    /// <typeparam name="X">The input value type that the block builder operates on.</typeparam>
+    /// <typeparam name="Y">The output value type that the block builder produces.</typeparam>
+    /// <returns>
+    /// An <see cref="IBlockBuilder{X, Y}"/> instance for building blocks that transform values
+    /// from type <typeparamref name="X"/> to type <typeparamref name="Y"/>.
+    /// </returns>
     IBlockBuilder<X, Y> CreateBlockBuilder<X, Y>();
 }

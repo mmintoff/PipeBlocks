@@ -10,5 +10,5 @@ public class ExceptionFailureState<V>(V value, Exception ex) : IFailureState<V>
     public Guid CorrelationId{ get; set; }
     public string? FailureReason { get; set; } = ex.Message;
     public Exception Exception{get;set; } = ex;
-    object IFailureState.Value { get => Value; set => Value = (V)value; }
+    object? IFailureState.Value { get => Value; set => Value = (V)(value ?? throw new ArgumentNullException(nameof(value))); }
 }

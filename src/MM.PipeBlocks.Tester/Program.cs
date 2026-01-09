@@ -53,7 +53,7 @@ var pipe = builder
     .Then<V3CodeBlock>()
     ;
 
-var r = pipe.Execute(new CustomValue1());
+var r = pipe.Execute(new CustomValue1() { Name = "Test" } );
 Console.WriteLine(r.ToString());
 
 public class DummyBlock : ISyncBlock<CustomValue1>
@@ -80,7 +80,7 @@ public class V2MapBlock : CodeBlock<CustomValue1, CustomValue2>
     {
         parameter.Context.Set("abc", 123);
         Console.WriteLine($"Received {parameter}, sending CustomValue2");
-        return new CustomValue2();
+        return new CustomValue2() { Address = "Test" };
     }
 }
 
@@ -98,7 +98,7 @@ public class V3MapBlock : CodeBlock<CustomValue2, CustomValue3>
     protected override Parameter<CustomValue3> Execute(Parameter<CustomValue2> parameter, CustomValue2 extractedValue)
     {
         Console.WriteLine($"Received {parameter}, sending CustomValue3");
-        return new CustomValue3();
+        return new CustomValue3() { Description = "Test" };
     }
 }
 

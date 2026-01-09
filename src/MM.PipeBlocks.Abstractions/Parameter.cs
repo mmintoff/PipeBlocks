@@ -15,7 +15,7 @@ public class Parameter<V> : IEither<IFailureState, V>
         get => _either.Match(
             f => f.TryGetValue<V>(out var result)
                 ? result!
-                : throw new InvalidOperationException($"Cannot access Value of type {typeof(V).Name} from failure state. The failure contains a value of type {f.Value.GetType().Name}."),
+                : throw new InvalidOperationException($"Cannot extract value of type {typeof(V).Name} from failure state containing {f.Value?.GetType().Name ?? "<null>"}."),
             s => s
         );
     }
@@ -31,8 +31,8 @@ public class Parameter<V> : IEither<IFailureState, V>
         {
             value = _either.Match(
                 f => f.TryGetValue<V>(out var result) ? result!
-                    : throw new InvalidOperationException($"Cannot extract value of type {typeof(V).Name} from failure state containing {f.Value.GetType().Name}. This indicates an internal inconsistency - parameter is not in failure state but contains failure data."),
-                right => right);
+                    : throw new InvalidOperationException($"Cannot extract value of type {typeof(V).Name} from failure state containing {f.Value?.GetType().Name ?? "<null>"}."),
+            right => right);
             return true;
         }
         value = default!;

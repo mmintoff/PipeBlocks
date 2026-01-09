@@ -5,7 +5,8 @@
 /// </summary>
 public interface IBlock { }
 /// <summary>
-/// Represents a block of code that operates on a value of type <typeparamref name="V"/>.
+/// Represents a block of code that operates on a value of type <typeparamref name="VIn"/>
+/// and produces a value of type <typeparamref name="VOut"/>.
 /// </summary>
 /// <typeparam name="VIn">The type of the value in the parameter.</typeparam>
 /// <typeparam name="VOut">The type of the value in the parameter.</typeparam>
@@ -14,7 +15,8 @@ public interface IBlock<VIn, VOut> : IBlock { }
 public interface IBlock<V> : IBlock<V, V> { }
 
 /// <summary>
-/// Represents a synchronous block that operates on a value of type <typeparamref name="V"/>.
+/// Represents a synchronous block that operates on a value of type <typeparamref name="VIn"/>
+/// and produces a value of type <typeparamref name="VOut"/>.
 /// </summary>
 /// <typeparam name="VIn">The type of the value in the parameter.</typeparam>
 /// <typeparam name="VOut">The type of the value in the parameter.</typeparam>
@@ -31,10 +33,11 @@ public interface ISyncBlock<VIn, VOut> : IBlock<VIn, VOut>
 public interface ISyncBlock<V> : IBlock<V>, ISyncBlock<V, V> { }
 
 /// <summary>
-/// Represents an asynchronous block that operates on a value of type <typeparamref name="V"/>.
+/// Represents an asynchronous block that operates on a value of type <typeparamref name="VIn"/>
+/// and produces a value of type <typeparamref name="VOut"/>.
 /// </summary>
-/// <typeparam name="VIn">The type of the value in the parameter.</typeparam>
-/// <typeparam name="VOut">The type of the value in the parameter.</typeparam>
+/// <typeparam name="VIn">The type of the input value.</typeparam>
+/// <typeparam name="VOut">The type of the output value.</typeparam>
 public interface IAsyncBlock<VIn, VOut> : IBlock<VIn, VOut>
 {
     /// <summary>

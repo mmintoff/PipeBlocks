@@ -221,4 +221,16 @@ public class AsyncFuncBlock<VIn, VOut> : IAsyncBlock<VIn, VOut>
 
         return _func(value);
     }
+
+    public override string ToString() => _fullName ??= GetFullName();
+
+    private string GetFullName()
+    {
+        var method = _func?.Method;
+        var typeName = method?.DeclaringType?.FullName ?? "UnknownType";
+        var methodName = method?.Name ?? "UnknownMethod";
+        var baseName = base.ToString() ?? nameof(AsyncFuncBlock<>);
+
+        return $"{baseName} (Method: {typeName}.{methodName})";
+    }
 }
