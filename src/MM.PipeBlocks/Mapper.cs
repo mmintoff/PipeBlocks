@@ -9,9 +9,9 @@ namespace MM.PipeBlocks;
 /// <typeparam name="VNext">The output type.</typeparam>
 public class Mapper<V, VNext>
 {
-    private BlockBuilder<V> _blockBuilder;
-    private BlockBuilder<VNext> _nextBlockBuilder;
-    private IPipeBlock<V> _pipe;
+    private readonly BlockBuilder<V> _blockBuilder;
+    private readonly BlockBuilder<VNext> _nextBlockBuilder;
+    private readonly IPipeBlock<V> _pipe;
 
     internal Mapper(IPipeBlock<V> pipe, BlockBuilder<V> blockBuilder)
     {
@@ -48,9 +48,9 @@ public class Mapper<V, VNext>
 /// <typeparam name="VNext">The output type.</typeparam>
 public class Mapper<VRoot, VOut, VNext>
 {
-    private BlockBuilder<VOut> _blockBuilder;
-    private BlockBuilder<VNext> _nextBlockBuilder;
-    private IPipeBlock<VRoot, VOut> _pipe;
+    private readonly BlockBuilder<VOut> _blockBuilder;
+    private readonly BlockBuilder<VNext> _nextBlockBuilder;
+    private readonly IPipeBlock<VRoot, VOut> _pipe;
 
     internal Mapper(IPipeBlock<VRoot, VOut> pipe, BlockBuilder<VOut> blockBuilder)
     {

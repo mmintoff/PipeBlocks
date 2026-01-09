@@ -14,7 +14,7 @@ public sealed class MapPipeBlock<VRoot, VPrev, VOut> : IPipeBlock<VRoot, VOut>
     /// <summary>
     /// The <see cref="BlockBuilder{VOut}"/> used to resolve and create blocks.
     /// </summary>
-    protected readonly BlockBuilder<VOut> Builder;
+    private readonly BlockBuilder<VOut> Builder;
 
     /// <summary>
     /// Gets the configuration options for this pipeline.

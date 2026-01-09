@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks.Internal;
 
-internal static class Merger
+internal static class MergeHelper
 {
     internal static async ValueTask<Parameter<VOut>> AwaitAndMerge<VIn, VOut>(
         ValueTask<Parameter<VOut>> inner,

@@ -34,7 +34,7 @@ public static class BlockExecutor
             IAsyncBlock<VIn, VOut> asyncBlock => ExecuteAsyncSynchronously(asyncBlock, value),
             _ => throw new InvalidOperationException($"Block does not implement ISyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}> or IAsyncBlock<{typeof(VIn).Name}, {typeof(VOut).Name}>")
         };
-        return Merger.Merge(result, value);
+        return MergeHelper.Merge(result, value);
     }
 
     /// <summary>
@@ -63,12 +63,11 @@ public static class BlockExecutor
         };
 
         if (vt.IsCompletedSuccessfully)
-            return ValueTask.FromResult(Merger.Merge(vt.Result, value));
+            return ValueTask.FromResult(MergeHelper.Merge(vt.Result, value));
 
-        return Merger.AwaitAndMerge(vt, value);
+        return MergeHelper.AwaitAndMerge(vt, value);
     }
 
-    // No hint - let JIT decide (has try/catch)
     private static Parameter<VOut> ExecuteSyncHandled<VIn, VOut>(
         ISyncBlock<VIn, VOut> syncBlock,
         Parameter<VIn> value)
@@ -86,7 +85,6 @@ public static class BlockExecutor
         }
     }
 
-    // No hint - let JIT decide (async method)
     private static async ValueTask<Parameter<VOut>> ExecuteAsyncHandled<VIn, VOut>(
         IAsyncBlock<VIn, VOut> asyncBlock,
         Parameter<VIn> value)
@@ -104,7 +102,6 @@ public static class BlockExecutor
         }
     }
 
-    // No hint - let JIT decide (has try/catch)
     private static ValueTask<Parameter<VOut>> ExecuteSyncAsValueTaskHandled<VIn, VOut>(
         ISyncBlock<VIn, VOut> syncBlock,
         Parameter<VIn> value)
@@ -122,7 +119,6 @@ public static class BlockExecutor
         }
     }
 
-    // No hint - let JIT decide (has try/catch)
     private static Parameter<VOut> ExecuteAsyncSynchronouslyHandled<VIn, VOut>(
         IAsyncBlock<VIn, VOut> asyncBlock,
         Parameter<VIn> value)
@@ -157,7 +153,6 @@ public static class BlockExecutor
         return ExecuteValueTaskSynchronouslySlow(task);
     }
 
-    // Separate slow path to keep inline size small
     private static Parameter<VOut> ExecuteValueTaskSynchronouslySlow<VOut>(ValueTask<Parameter<VOut>> task)
     {
         if (task.IsCompleted)
