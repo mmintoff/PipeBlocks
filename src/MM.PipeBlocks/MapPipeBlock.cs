@@ -1,29 +1,39 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using MM.PipeBlocks.Abstractions;
-using System.Runtime.CompilerServices;
 
 namespace MM.PipeBlocks;
+
 /// <summary>
-/// Represents a pipeline of blocks that execute sequentially in either synchronous or asynchronous fashion.
+/// Represents a mapped pipeline that transforms data from <typeparamref name="VRoot"/> through <typeparamref name="VPrev"/> to <typeparamref name="VOut"/>.
 /// </summary>
-/// <typeparam name="V">The type of the value associated with the context.</typeparam>
-public partial class PipeBlock<V> : IPipeBlock<V>
+/// <typeparam name="VRoot">The original input type of the entire pipeline.</typeparam>
+/// <typeparam name="VPrev">The output type of the previous pipeline stage.</typeparam>
+/// <typeparam name="VOut">The output type of this pipeline stage.</typeparam>
+public sealed class MapPipeBlock<VRoot, VPrev, VOut> : IPipeBlock<VRoot, VOut>
 {
     /// <summary>
-    /// The <see cref="BlockBuilder{V}"/> used to resolve and create blocks.
+    /// The <see cref="BlockBuilder{VOut}"/> used to resolve and create blocks.
     /// </summary>
-    protected readonly BlockBuilder<V> Builder;
-
-    public PipeBlockOptions Options => _options;
+    private readonly BlockBuilder<VOut> Builder;
 
     /// <summary>
-    /// The list of blocks that make up the pipeline.
+    /// Gets the configuration options for this pipeline.
     /// </summary>
-    protected readonly List<IBlock<V>> _blocks = [];
+    public PipeBlockOptions Options => _options;
 
+    private readonly string _vRootName = typeof(VRoot).Name,
+                            _vPrevName = typeof(VPrev).Name,
+                            _vOutName = typeof(VOut).Name;
+
+    private readonly IPipeBlock<VRoot, VPrev> _previousPipeBlock;
+    private readonly IBlock<VPrev, VOut> _mapBlock;
+
+    /// <summary>
+    /// The list of blocks that execute after the mapping.
+    /// </summary>
+    private readonly List<IBlock<VOut>> _blocks = [];
     private readonly PipeBlockOptions _options;
-    private readonly ILogger<PipeBlock<V>> _logger;
+    private readonly ILogger<MapPipeBlock<VRoot, VPrev, VOut>> _logger;
     private readonly bool _hasContextConstants;
 
     private static readonly Action<ILogger, string, Exception?> s_createdPipe = LoggerMessage.Define<string>(LogLevel.Information, default, "Created pipe: '{PipeName}'");
@@ -41,16 +51,29 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     private static readonly Action<ILogger, string, Guid, Exception?> s_async_logCompletedPipe = LoggerMessage.Define<string, Guid>(LogLevel.Trace, default, "Completed asynchronous pipe: '{name}' execution for context: {CorrelationId}");
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PipeBlock{V}"/> class with a given name and builder.
+    /// Initializes a new instance of the <see cref="MapPipeBlock{VRoot, VPrev, VOut}"/> class.
     /// </summary>
-    /// <param name="options">The options containing the pipe configuration.</param>
+    /// <param name="previousPipeBlock">The pipeline that produces <typeparamref name="VPrev"/>.</param>
+    /// <param name="mapBlock">The block that transforms <typeparamref name="VPrev"/> to <typeparamref name="VOut"/>.</param>
     /// <param name="blockBuilder">The builder used to resolve additional blocks.</param>
-    public PipeBlock(IOptions<PipeBlockOptions> options, BlockBuilder<V> blockBuilder)
+    internal MapPipeBlock
+        (
+            IPipeBlock<VRoot, VPrev> previousPipeBlock,
+            IBlock<VPrev, VOut> mapBlock,
+            BlockBuilder<VOut> blockBuilder
+        )
     {
-        _options = options.Value;
-        _hasContextConstants = _options.ConfigureContextConstants != null;
+        _previousPipeBlock = previousPipeBlock;
+        _mapBlock = mapBlock;
+
+        _options = new PipeBlockOptions
+        {
+            HandleExceptions = _previousPipeBlock.Options.HandleExceptions,
+            PipeName = $"[{_vRootName}]->[{_vOutName}] via [{_vPrevName}]"
+        };
+
         Builder = blockBuilder;
-        _logger = blockBuilder.CreateLogger<PipeBlock<V>>();
+        _logger = blockBuilder.CreateLogger<MapPipeBlock<VRoot, VPrev, VOut>>();
         s_createdPipe(_logger, _options.PipeName, null);
     }
 
@@ -60,7 +83,7 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <param name="value">The parameter to execute the pipeline with.</param>
     /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
     /// <returns>The updated parameter after pipeline execution.</returns>
-    public Parameter<V> Execute(Parameter<V> value, Action<Context>? configureContext)
+    public Parameter<VOut> Execute(Parameter<VRoot> value, Action<Context>? configureContext)
     {
         s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
@@ -69,30 +92,32 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     }
 
     /// <summary>
-    /// Executes the pipeline synchronously with the provided context.
+    /// Executes the pipeline synchronously with the provided parameter.
     /// </summary>
-    /// <param name="value">The execution context.</param>
-    /// <returns>The updated context after pipeline execution.</returns>
-    public Parameter<V> Execute(Parameter<V> value)
+    /// <param name="value">The parameter to execute the pipeline with.</param>
+    /// <returns>The updated parameter after pipeline execution.</returns>
+    public Parameter<VOut> Execute(Parameter<VRoot> value)
     {
-        s_sync_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        if(_hasContextConstants && !IsFinished(value))
+        var prevValue = _previousPipeBlock.Execute(value);
+        s_sync_logExecutingPipe(_logger, _options.PipeName, value.CorrelationId, null);
+        var newValue = BlockExecutor.ExecuteSync(_mapBlock, prevValue);
+
+        if (_hasContextConstants)
         {
             _options.ConfigureContextConstants!(value.Context);
         }
 
         for (int i = 0; i < _blocks.Count; i++)
         {
-            if (IsFinished(value))
+            if (IsFinished(newValue))
             {
-                s_sync_logStoppingPipe(_logger, _options.PipeName, i, value.Context.CorrelationId, null);
+                s_sync_logStoppingPipe(_logger, _options.PipeName, i, newValue.CorrelationId, null);
                 break;
             }
-
-            value = BlockExecutor.ExecuteSync(_blocks[i], value, _options.HandleExceptions);
+            newValue = BlockExecutor.ExecuteSync(_blocks[i], newValue, _options.HandleExceptions);
         }
-        s_sync_logCompletedPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        return value;
+        s_sync_logCompletedPipe(_logger, _options.PipeName, newValue.CorrelationId, null);
+        return newValue;
     }
 
     /// <summary>
@@ -101,48 +126,65 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// <param name="value">The parameter to execute the pipeline with.</param>
     /// <param name="configureContext">An optional action to configure the execution context before execution begins.</param>
     /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
-    public ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value, Action<Context>? configureContext)
+    public ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VRoot> value, Action<Context>? configureContext)
     {
         s_logApplyingContextConfig(_logger, _options.PipeName, null);
         configureContext?.Invoke(value.Context);
         s_logAppliedContextConfig(_logger, _options.PipeName, null);
-        return ExecuteAsync(value);  // Return the task directly, no await
+        return ExecuteAsync(value);
     }
 
     /// <summary>
-    /// Executes the pipeline asynchronously with the provided context.
+    /// Executes the pipeline asynchronously with the provided parameter.
     /// </summary>
-    /// <param name="value">The execution context.</param>
-    /// <returns>A task representing the asynchronous operation, returning the updated context.</returns>
-    public async ValueTask<Parameter<V>> ExecuteAsync(Parameter<V> value)
+    /// <param name="value">The parameter to execute the pipeline with.</param>
+    /// <returns>A task representing the asynchronous operation, returning the updated parameter.</returns>
+    public async ValueTask<Parameter<VOut>> ExecuteAsync(Parameter<VRoot> value)
     {
-        s_async_logExecutingPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        if (_hasContextConstants && !IsFinished(value))
+        var prevValue = await _previousPipeBlock.ExecuteAsync(value);
+        s_async_logExecutingPipe(_logger, _options.PipeName, value.CorrelationId, null);
+        var newValue = await BlockExecutor.ExecuteAsync(_mapBlock, prevValue);
+
+        if (_hasContextConstants)
         {
             _options.ConfigureContextConstants!(value.Context);
         }
 
         for (int i = 0; i < _blocks.Count; i++)
         {
-            if (IsFinished(value))
+            if (IsFinished(newValue))
             {
-                s_async_logStoppingPipe(_logger, _options.PipeName, i, value.Context.CorrelationId, null);
+                s_async_logStoppingPipe(_logger, _options.PipeName, i, newValue.CorrelationId, null);
                 break;
             }
-
-            var task = BlockExecutor.ExecuteAsync(_blocks[i], value, _options.HandleExceptions);
-            value = task.IsCompletedSuccessfully ? task.Result : await task;
+            newValue = await BlockExecutor.ExecuteAsync(_blocks[i], newValue);
         }
-        s_async_logCompletedPipe(_logger, _options.PipeName, value.Context.CorrelationId, null);
-        return value;
+        s_async_logCompletedPipe(_logger, _options.PipeName, newValue.CorrelationId, null);
+        return newValue;
     }
+
+    /// <summary>
+    /// Adds a block to the internal list and logs the operation.
+    /// </summary>
+    /// <param name="block">The block to add.</param>
+    /// <returns>The current instance.</returns>
+    private MapPipeBlock<VRoot, VPrev, VOut> AddBlock(IBlock<VOut> block)
+    {
+        _blocks.Add(block);
+        s_logAddBlock(_logger, block.ToString() ?? "Unknown", _options.PipeName, null);
+        return this;
+    }
+
+    private static bool IsFinished(Parameter<VOut> value) => value.Context.IsFlipped
+        ? !(value.Context.IsFinished || value.IsFailure)
+        : value.Context.IsFinished || value.IsFailure;
 
     /// <summary>
     /// Adds a block to the pipeline.
     /// </summary>
     /// <param name="block">The block to add.</param>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<V> Then(IBlock<V> block)
+    public MapPipeBlock<VRoot, VPrev, VOut> Then(IBlock<VOut> block)
         => AddBlock(block);
 
     /// <summary>
@@ -150,8 +192,8 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// </summary>
     /// <typeparam name="X">The block type to resolve and add.</typeparam>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<V> Then<X>()
-        where X : IBlock<V>
+    public MapPipeBlock<VRoot, VPrev, VOut> Then<X>()
+        where X : IBlock<VOut>
         => AddBlock(Builder.ResolveInstance<X>());
 
     /// <summary>
@@ -159,36 +201,12 @@ public partial class PipeBlock<V> : IPipeBlock<V>
     /// </summary>
     /// <param name="func">A function that takes a builder and returns a block.</param>
     /// <returns>The current instance for chaining.</returns>
-    public PipeBlock<V> Then(Func<BlockBuilder<V>, IBlock<V>> func)
+    public MapPipeBlock<VRoot, VPrev, VOut> Then(Func<BlockBuilder<VOut>, IBlock<VOut>> func)
         => AddBlock(func(Builder));
 
     /// <summary>
-    /// Returns the name of the pipe.
-    /// </summary>
-    public override string ToString() => _options.PipeName;
-
-    /// <summary>
-    /// Adds a block to the internal list and logs the operation.
-    /// </summary>
-    /// <param name="block">The block to add.</param>
-    /// <returns>The current instance.</returns>
-    protected PipeBlock<V> AddBlock(IBlock<V> block)
-    {
-        _blocks.Add(block);
-        s_logAddBlock(_logger, block.ToString() ?? "Unknown", _options.PipeName, null);
-        return this;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsFinished(Parameter<V> value) => value.Context.IsFlipped
-        ? !(value.Context.IsFinished || value.IsFailure)
-        : value.Context.IsFinished || value.IsFailure;
-
-    /// <summary>
-    /// Begins a mapping operation to transform the pipeline output to type <typeparamref name="VNext"/>.
-    /// Returns a <see cref="Mapper{V, VNext}"/> that requires a block to be specified via <see cref="Mapper{V, VNext}.Via{X}"/> to complete the mapping.
+    /// Begins a mapping operation to type <typeparamref name="VNext"/>.
     /// </summary>
     /// <typeparam name="VNext">The target type to map to.</typeparam>
-    /// <returns>A mapper configuration that must be completed by specifying a transformation block.</returns>
-    public Mapper<V, VNext> Map<VNext>() => new(this, Builder);
+    public Mapper<VRoot, VOut, VNext> Map<VNext>() => new(this, Builder);
 }

@@ -18,6 +18,8 @@ public partial class StartFromPipeBlock<V> : IPipeBlock<V>
     /// </summary>
     protected readonly BlockBuilder<V> Builder;
 
+    public PipeBlockOptions Options => _options;
+
     private readonly List<IBlock<V>> _blocks = [];
     private readonly PipeBlockOptions _options;
     private readonly Func<Parameter<V>, int> _startStepFunc;

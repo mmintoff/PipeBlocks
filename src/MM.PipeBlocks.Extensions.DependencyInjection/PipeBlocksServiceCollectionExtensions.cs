@@ -8,7 +8,9 @@ public static class PipeBlocksServiceCollectionExtensions
     public static PipeBlockConfigurator AddPipeBlocks(this IServiceCollection services)
     {
         services.AddTransient(typeof(IBlockResolver<>), typeof(ServiceProviderBackedResolver<>));
+        services.AddTransient(typeof(IBlockResolver<,>), typeof(ServiceProviderBackedResolver<,>));
         services.AddTransient(typeof(BlockBuilder<>));
+        services.AddTransient(typeof(BlockBuilder<,>));
 
         return new PipeBlockConfigurator(services);
     }

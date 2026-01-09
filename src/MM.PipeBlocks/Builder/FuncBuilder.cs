@@ -55,3 +55,20 @@ public partial class BlockBuilder<V>
     /// <returns>AsyncFuncBlock</returns>
     public AsyncFuncBlock<V> Run(Func<Parameter<V>, ValueTask> action) => new(action);
 }
+
+public partial class BlockBuilder<VIn, VOut>
+{
+    /// <summary>
+    /// Executes a synchronous function that transforms the context.
+    /// </summary>
+    /// <param name="func">The function to execute.</param>
+    /// <returns>FuncBlock</returns>
+    public FuncBlock<VIn, VOut> Run(Func<Parameter<VIn>, Parameter<VOut>> func) => new(func);
+
+    /// <summary>
+    /// Executes an asynchronous function that transforms the context.
+    /// </summary>
+    /// <param name="func">The asynchronous function to execute.</param>
+    /// <returns>AsyncFuncBlock</returns>
+    public AsyncFuncBlock<VIn, VOut> Run(Func<Parameter<VIn>, ValueTask<Parameter<VOut>>> func) => new(func);
+}

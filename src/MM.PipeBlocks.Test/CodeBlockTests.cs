@@ -20,7 +20,7 @@ public class CodeBlockTests
         result.Match(
             f =>
             {
-                Assert.Equal(initialValue.Identifier, f.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, f.TryGetValue<MyValue>(out var fc) ? fc.Identifier : default);
                 Assert.Equal(value.CorrelationId, f.CorrelationId);
                 Assert.Equal("Initial Failure", f.FailureReason);
             },
@@ -57,7 +57,7 @@ public class CodeBlockTests
         result.Match(
             f =>
             {
-                Assert.Equal(value.Value.Identifier, f.Value.Identifier);
+                Assert.Equal(value.Value.Identifier, f.TryGetValue<MyValue>(out var fc) ? fc.Identifier : default);
                 Assert.Equal(value.CorrelationId, f.CorrelationId);
                 Assert.Equal("Intentional", f.FailureReason);
             },
@@ -105,7 +105,7 @@ public class CodeBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(initialValue.Identifier, x.Value.Identifier);
+                Assert.Equal(initialValue.Identifier, x.TryGetValue<MyValue>(out var xc) ? xc.Identifier : default);
                 Assert.Equal(result.CorrelationId, x.CorrelationId);
                 Assert.Equal("Initial Failure", x.FailureReason);
             },
@@ -140,7 +140,7 @@ public class CodeBlockTests
         result.Match(
             x =>
             {
-                Assert.Equal(value.Value.Identifier, x.Value.Identifier);
+                Assert.Equal(value.Value.Identifier, x.TryGetValue<MyValue>(out var xc) ? xc.Identifier : default);
                 Assert.Equal(value.CorrelationId, x.CorrelationId);
                 Assert.Equal("Intentional", x.FailureReason);
             },

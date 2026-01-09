@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.3.11312.210 d18.3
+VisualStudioVersion = 18.3.11312.210
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM.PipeBlocks", "MM.PipeBlocks.csproj", "{9AF183AC-3F03-45EB-9EF6-8C7B7CF5492F}"
 EndProject
@@ -32,6 +32,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reusable", "..\Examples\Reusable\Reusable.csproj", "{7E82EB4A-86C2-B697-E796-0D7BF5A9695F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MM.PipeBlocks.Extensions.DependencyInjection", "..\MM.PipeBlocks.Extensions.DependencyInjection\MM.PipeBlocks.Extensions.DependencyInjection.csproj", "{F841766D-69A5-4ABC-8CE0-814ADCB700D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Map", "..\Map\Map.csproj", "{D8C18430-BF95-4F68-8B89-D6B0BB171688}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -95,6 +97,10 @@ Global
 		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F841766D-69A5-4ABC-8CE0-814ADCB700D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8C18430-BF95-4F68-8B89-D6B0BB171688}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8C18430-BF95-4F68-8B89-D6B0BB171688}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8C18430-BF95-4F68-8B89-D6B0BB171688}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8C18430-BF95-4F68-8B89-D6B0BB171688}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -108,6 +114,7 @@ Global
 		{2AEEA0D7-7E26-08AA-CDF9-0E131DDB0BF4} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{D34E7717-0ACF-40E9-861E-6CD37E7BDF21} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{7E82EB4A-86C2-B697-E796-0D7BF5A9695F} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{D8C18430-BF95-4F68-8B89-D6B0BB171688} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2E4A3603-229C-4BED-B098-E8CC9ED22E19}

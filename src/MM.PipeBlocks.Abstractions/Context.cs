@@ -125,4 +125,16 @@ public sealed class Context
         };
         return c;
     }
+
+    public void Merge(Context other)
+    {
+        var otherLength = other._slots.Length;
+        if (otherLength > 0)
+        {
+            Ensure(otherLength - 1);
+            for (int i = 0; i < otherLength; i++)
+                if (other._slots[i] != null)
+                    _slots[i] = other._slots[i];
+        }
+    }
 }
