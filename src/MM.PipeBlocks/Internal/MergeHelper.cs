@@ -14,11 +14,15 @@ internal static class MergeHelper
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static Parameter<VOut> Merge<VIn, VOut>(Parameter<VOut> newValue, Parameter<VIn> oldValue)
+    internal static Parameter<VOut> Merge<VIn, VOut>(
+        Parameter<VOut> newValue,
+        Parameter<VIn> oldValue)
     {
+        if (oldValue.Context == newValue.Context)
+            return newValue;
+
         oldValue.Context.Merge(newValue.Context);
         newValue.Context = oldValue.Context;
-        newValue.Context.CorrelationId = oldValue.CorrelationId;
         return newValue;
     }
 }

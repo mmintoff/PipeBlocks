@@ -128,6 +128,9 @@ public sealed class Context
 
     public void Merge(Context other)
     {
+        IsFinished = other.IsFinished;
+        IsFlipped = other.IsFlipped;
+
         var otherLength = other._slots.Length;
         if (otherLength > 0)
         {

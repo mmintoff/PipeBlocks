@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MM.PipeBlocks;
 using MM.PipeBlocks.Abstractions;
-using MM.PipeBlocks.Extensions;
 using MM.PipeBlocks.Extensions.DependencyInjection;
 using MM.PipeBlocks.Tester;
 
